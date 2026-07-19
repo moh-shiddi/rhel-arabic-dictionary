@@ -1,0 +1,2508 @@
+{
+  "schema_version": "3.0.0",
+  "entity_types": {
+    "task": "مهمة عملية",
+    "command": "مرجع أمر",
+    "concept": "مفهوم",
+    "troubleshooting": "حل مشكلة",
+    "learning_path": "مسار تعلم"
+  },
+  "categories": {
+    "concepts": "المفاهيم الأساسية",
+    "learning": "مسارات التعلم",
+    "reference": "مرجع الأوامر",
+    "web_servers": "خوادم الويب"
+  },
+  "entities": [
+    {
+      "id": "cmd-dnf",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر dnf",
+      "summary_ar": "مدير الحزم الأساسي في RHEL للبحث والتثبيت والتحديث والإزالة.",
+      "category": "reference",
+      "keywords_ar": [
+        "dnf",
+        "مرجع أمر dnf",
+        "مدير الحزم الأساسي في RHEL للبحث والتثبيت والتحديث والإزالة.",
+        "dnf <ACTION> [OPTIONS] [PACKAGE]",
+        "dnf search nginx",
+        "sudo dnf install nginx",
+        "sudo dnf upgrade",
+        "dnf history"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-package-management",
+        "install-package-dnf",
+        "cmd-rpm"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "dnf",
+      "purpose_ar": "مدير الحزم الأساسي في RHEL للبحث والتثبيت والتحديث والإزالة.",
+      "syntax": "dnf <ACTION> [OPTIONS] [PACKAGE]",
+      "provided_by": "dnf",
+      "requires_sudo": true,
+      "risk": "medium",
+      "options": [
+        {
+          "option": "search",
+          "description_ar": "البحث عن الحزم",
+          "example": "dnf search <TEXT>"
+        },
+        {
+          "option": "info",
+          "description_ar": "عرض معلومات الحزمة",
+          "example": "dnf info <PACKAGE>"
+        },
+        {
+          "option": "install",
+          "description_ar": "تثبيت حزمة",
+          "example": "sudo dnf install <PACKAGE>"
+        },
+        {
+          "option": "remove",
+          "description_ar": "إزالة حزمة",
+          "example": "sudo dnf remove <PACKAGE>"
+        },
+        {
+          "option": "repolist",
+          "description_ar": "عرض المستودعات",
+          "example": "dnf repolist"
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "البحث عن حزمة",
+          "command": "dnf search nginx",
+          "explanation_ar": "يبحث في أسماء الحزم وأوصافها."
+        },
+        {
+          "title_ar": "تثبيت حزمة",
+          "command": "sudo dnf install nginx",
+          "explanation_ar": "يثبت الحزمة مع الاعتماديات."
+        },
+        {
+          "title_ar": "تحديث النظام",
+          "command": "sudo dnf upgrade",
+          "explanation_ar": "يحدث الحزم المثبتة."
+        },
+        {
+          "title_ar": "عرض السجل",
+          "command": "dnf history",
+          "explanation_ar": "يعرض عمليات DNF السابقة."
+        }
+      ],
+      "common_mistakes_ar": [
+        "استخدام اسم برنامج تجاري بدلاً من اسم الحزمة الفعلي.",
+        "تنفيذ remove دون مراجعة الحزم التابعة التي ستزال."
+      ]
+    },
+    {
+      "id": "cmd-rpm",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر rpm",
+      "summary_ar": "أداة منخفضة المستوى للاستعلام عن حزم RPM والتحقق منها وتثبيتها مباشرة.",
+      "category": "reference",
+      "keywords_ar": [
+        "rpm",
+        "مرجع أمر rpm",
+        "أداة منخفضة المستوى للاستعلام عن حزم RPM والتحقق منها وتثبيتها مباشرة.",
+        "rpm [OPTIONS] <PACKAGE_OR_FILE>",
+        "rpm -q bash",
+        "rpm -ql nginx",
+        "rpm -qf /usr/bin/ls"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-package-management",
+        "cmd-dnf"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "rpm",
+      "purpose_ar": "أداة منخفضة المستوى للاستعلام عن حزم RPM والتحقق منها وتثبيتها مباشرة.",
+      "syntax": "rpm [OPTIONS] <PACKAGE_OR_FILE>",
+      "provided_by": "rpm",
+      "requires_sudo": false,
+      "risk": "medium",
+      "options": [
+        {
+          "option": "-q",
+          "description_ar": "الاستعلام عن حزمة",
+          "example": ""
+        },
+        {
+          "option": "-l",
+          "description_ar": "عرض ملفات الحزمة",
+          "example": ""
+        },
+        {
+          "option": "-f",
+          "description_ar": "البحث بحزمة تملك ملفاً",
+          "example": ""
+        },
+        {
+          "option": "-V",
+          "description_ar": "التحقق من سلامة ملفات الحزمة",
+          "example": ""
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "فحص حزمة مثبتة",
+          "command": "rpm -q bash",
+          "explanation_ar": "يعرض إصدار الحزمة المثبتة."
+        },
+        {
+          "title_ar": "عرض ملفات الحزمة",
+          "command": "rpm -ql nginx",
+          "explanation_ar": "يعرض الملفات التي ثبتتها الحزمة."
+        },
+        {
+          "title_ar": "معرفة مالك ملف",
+          "command": "rpm -qf /usr/bin/ls",
+          "explanation_ar": "يعرض الحزمة التي وفرت الملف."
+        }
+      ],
+      "common_mistakes_ar": []
+    },
+    {
+      "id": "cmd-systemctl",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر systemctl",
+      "summary_ar": "إدارة خدمات ووحدات systemd: التشغيل والإيقاف والحالة والتفعيل مع الإقلاع.",
+      "category": "reference",
+      "keywords_ar": [
+        "systemctl",
+        "مرجع أمر systemctl",
+        "إدارة خدمات ووحدات systemd: التشغيل والإيقاف والحالة والتفعيل مع الإقلاع.",
+        "systemctl <ACTION> <UNIT>",
+        "systemctl status sshd",
+        "sudo systemctl start nginx",
+        "sudo systemctl enable nginx",
+        "sudo systemctl enable --now nginx"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-systemd",
+        "troubleshoot-systemd-service",
+        "cmd-journalctl"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "systemctl",
+      "purpose_ar": "إدارة خدمات ووحدات systemd: التشغيل والإيقاف والحالة والتفعيل مع الإقلاع.",
+      "syntax": "systemctl <ACTION> <UNIT>",
+      "provided_by": "systemd",
+      "requires_sudo": true,
+      "risk": "high",
+      "options": [
+        {
+          "option": "status",
+          "description_ar": "عرض حالة الوحدة",
+          "example": ""
+        },
+        {
+          "option": "start",
+          "description_ar": "تشغيل الوحدة",
+          "example": ""
+        },
+        {
+          "option": "stop",
+          "description_ar": "إيقاف الوحدة",
+          "example": ""
+        },
+        {
+          "option": "restart",
+          "description_ar": "إعادة التشغيل",
+          "example": ""
+        },
+        {
+          "option": "enable",
+          "description_ar": "التفعيل مع الإقلاع",
+          "example": ""
+        },
+        {
+          "option": "--failed",
+          "description_ar": "عرض الوحدات الفاشلة",
+          "example": ""
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "عرض الحالة",
+          "command": "systemctl status sshd",
+          "explanation_ar": "يعرض حالة الخدمة وآخر رسائلها."
+        },
+        {
+          "title_ar": "تشغيل خدمة",
+          "command": "sudo systemctl start nginx",
+          "explanation_ar": "يشغل الخدمة الآن."
+        },
+        {
+          "title_ar": "التفعيل مع الإقلاع",
+          "command": "sudo systemctl enable nginx",
+          "explanation_ar": "يجعل الخدمة تبدأ تلقائياً."
+        },
+        {
+          "title_ar": "التشغيل والتفعيل معاً",
+          "command": "sudo systemctl enable --now nginx",
+          "explanation_ar": "ينفذ العمليتين معاً."
+        }
+      ],
+      "common_mistakes_ar": [
+        "الخلط بين start الذي يشغل الآن وenable الذي يفعّل مع الإقلاع.",
+        "إعادة تشغيل خدمة إنتاجية قبل اختبار ملف إعدادها."
+      ]
+    },
+    {
+      "id": "cmd-journalctl",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر journalctl",
+      "summary_ar": "قراءة سجلات systemd والخدمات والإقلاع والنواة.",
+      "category": "reference",
+      "keywords_ar": [
+        "journalctl",
+        "مرجع أمر journalctl",
+        "قراءة سجلات systemd والخدمات والإقلاع والنواة.",
+        "journalctl [OPTIONS]",
+        "journalctl -u nginx -b",
+        "journalctl -fu sshd",
+        "journalctl -p err..alert"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-systemd",
+        "cmd-systemctl",
+        "troubleshoot-systemd-service"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "journalctl",
+      "purpose_ar": "قراءة سجلات systemd والخدمات والإقلاع والنواة.",
+      "syntax": "journalctl [OPTIONS]",
+      "provided_by": "systemd",
+      "requires_sudo": false,
+      "risk": "low",
+      "options": [
+        {
+          "option": "-u",
+          "description_ar": "تحديد وحدة أو خدمة",
+          "example": ""
+        },
+        {
+          "option": "-b",
+          "description_ar": "سجل الإقلاع الحالي",
+          "example": ""
+        },
+        {
+          "option": "-f",
+          "description_ar": "متابعة مباشرة",
+          "example": ""
+        },
+        {
+          "option": "--since",
+          "description_ar": "التصفية حسب الوقت",
+          "example": ""
+        },
+        {
+          "option": "-p",
+          "description_ar": "التصفية حسب الأولوية",
+          "example": ""
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "سجل خدمة",
+          "command": "journalctl -u nginx -b",
+          "explanation_ar": "يعرض سجل nginx منذ الإقلاع الحالي."
+        },
+        {
+          "title_ar": "متابعة مباشرة",
+          "command": "journalctl -fu sshd",
+          "explanation_ar": "يعرض الرسائل الجديدة فور وصولها."
+        },
+        {
+          "title_ar": "أخطاء النظام",
+          "command": "journalctl -p err..alert",
+          "explanation_ar": "يعرض مستويات الخطأ الأعلى."
+        }
+      ],
+      "common_mistakes_ar": []
+    },
+    {
+      "id": "cmd-firewall-cmd",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر firewall-cmd",
+      "summary_ar": "إدارة قواعد firewalld والمناطق والخدمات والمنافذ.",
+      "category": "reference",
+      "keywords_ar": [
+        "firewall-cmd",
+        "مرجع أمر firewall-cmd",
+        "إدارة قواعد firewalld والمناطق والخدمات والمنافذ.",
+        "firewall-cmd [OPTIONS]",
+        "sudo firewall-cmd --list-all",
+        "sudo firewall-cmd --permanent --add-service=http",
+        "sudo firewall-cmd --permanent --add-port=8080/tcp",
+        "sudo firewall-cmd --reload"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-firewalld",
+        "install-nginx-web-server",
+        "cmd-ss"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "firewall-cmd",
+      "purpose_ar": "إدارة قواعد firewalld والمناطق والخدمات والمنافذ.",
+      "syntax": "firewall-cmd [OPTIONS]",
+      "provided_by": "firewalld",
+      "requires_sudo": true,
+      "risk": "high",
+      "options": [
+        {
+          "option": "--get-active-zones",
+          "description_ar": "عرض المناطق النشطة",
+          "example": ""
+        },
+        {
+          "option": "--list-all",
+          "description_ar": "عرض قواعد المنطقة",
+          "example": ""
+        },
+        {
+          "option": "--add-service",
+          "description_ar": "السماح بخدمة معروفة",
+          "example": ""
+        },
+        {
+          "option": "--add-port",
+          "description_ar": "فتح منفذ",
+          "example": ""
+        },
+        {
+          "option": "--permanent",
+          "description_ar": "حفظ التغيير دائماً",
+          "example": ""
+        },
+        {
+          "option": "--reload",
+          "description_ar": "تطبيق الإعدادات الدائمة",
+          "example": ""
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "عرض المنطقة الحالية",
+          "command": "sudo firewall-cmd --list-all",
+          "explanation_ar": "يعرض قواعد المنطقة الافتراضية."
+        },
+        {
+          "title_ar": "فتح HTTP",
+          "command": "sudo firewall-cmd --permanent --add-service=http",
+          "explanation_ar": "يضيف خدمة HTTP دائماً."
+        },
+        {
+          "title_ar": "فتح منفذ",
+          "command": "sudo firewall-cmd --permanent --add-port=8080/tcp",
+          "explanation_ar": "يفتح منفذ TCP."
+        },
+        {
+          "title_ar": "تطبيق القواعد",
+          "command": "sudo firewall-cmd --reload",
+          "explanation_ar": "يعيد تحميل الإعدادات الدائمة."
+        }
+      ],
+      "common_mistakes_ar": [
+        "إضافة القاعدة الدائمة دون تنفيذ reload.",
+        "فتح منفذ في منطقة لا ترتبط بواجهة الشبكة المطلوبة."
+      ]
+    },
+    {
+      "id": "cmd-ssh",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر ssh",
+      "summary_ar": "فتح جلسة طرفية مشفرة على جهاز بعيد وتنفيذ أوامر عن بعد.",
+      "category": "reference",
+      "keywords_ar": [
+        "ssh",
+        "مرجع أمر ssh",
+        "فتح جلسة طرفية مشفرة على جهاز بعيد وتنفيذ أوامر عن بعد.",
+        "ssh [OPTIONS] <USER>@<HOST>",
+        "ssh admin@server",
+        "ssh -p 2222 admin@server",
+        "ssh -vvv admin@server"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-ssh",
+        "troubleshoot-ssh-connection",
+        "cmd-systemctl"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "ssh",
+      "purpose_ar": "فتح جلسة طرفية مشفرة على جهاز بعيد وتنفيذ أوامر عن بعد.",
+      "syntax": "ssh [OPTIONS] <USER>@<HOST>",
+      "provided_by": "openssh-clients",
+      "requires_sudo": false,
+      "risk": "medium",
+      "options": [
+        {
+          "option": "-p",
+          "description_ar": "تحديد المنفذ",
+          "example": ""
+        },
+        {
+          "option": "-i",
+          "description_ar": "تحديد ملف المفتاح الخاص",
+          "example": ""
+        },
+        {
+          "option": "-v / -vvv",
+          "description_ar": "عرض تفاصيل التشخيص",
+          "example": ""
+        },
+        {
+          "option": "-L",
+          "description_ar": "تحويل منفذ محلي",
+          "example": ""
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "اتصال عادي",
+          "command": "ssh admin@server",
+          "explanation_ar": "يتصل عبر المنفذ 22."
+        },
+        {
+          "title_ar": "منفذ مختلف",
+          "command": "ssh -p 2222 admin@server",
+          "explanation_ar": "يتصل بمنفذ مخصص."
+        },
+        {
+          "title_ar": "تشخيص تفصيلي",
+          "command": "ssh -vvv admin@server",
+          "explanation_ar": "يعرض مراحل الاتصال والمصادقة."
+        }
+      ],
+      "common_mistakes_ar": [
+        "تغيير sshd_config وإغلاق الجلسة الوحيدة قبل اختبار جلسة جديدة.",
+        "استخدام صلاحيات غير صحيحة لملفات المفاتيح."
+      ]
+    },
+    {
+      "id": "cmd-ss",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر ss",
+      "summary_ar": "عرض المقابس والاتصالات والمنافذ المستمعة والعمليات المرتبطة بها.",
+      "category": "reference",
+      "keywords_ar": [
+        "ss",
+        "مرجع أمر ss",
+        "عرض المقابس والاتصالات والمنافذ المستمعة والعمليات المرتبطة بها.",
+        "ss [OPTIONS]",
+        "sudo ss -tulpn",
+        "ss -tln"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-network-stack",
+        "cmd-firewall-cmd",
+        "troubleshoot-ssh-connection"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "ss",
+      "purpose_ar": "عرض المقابس والاتصالات والمنافذ المستمعة والعمليات المرتبطة بها.",
+      "syntax": "ss [OPTIONS]",
+      "provided_by": "iproute",
+      "requires_sudo": true,
+      "risk": "low",
+      "options": [
+        {
+          "option": "-t",
+          "description_ar": "TCP",
+          "example": ""
+        },
+        {
+          "option": "-u",
+          "description_ar": "UDP",
+          "example": ""
+        },
+        {
+          "option": "-l",
+          "description_ar": "المنافذ المستمعة",
+          "example": ""
+        },
+        {
+          "option": "-p",
+          "description_ar": "العملية المالكة",
+          "example": ""
+        },
+        {
+          "option": "-n",
+          "description_ar": "عدم تحويل الأرقام إلى أسماء",
+          "example": ""
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "كل المنافذ المستمعة",
+          "command": "sudo ss -tulpn",
+          "explanation_ar": "يعرض TCP وUDP والعمليات."
+        },
+        {
+          "title_ar": "TCP المستمع",
+          "command": "ss -tln",
+          "explanation_ar": "يعرض منافذ TCP المستمعة."
+        }
+      ],
+      "common_mistakes_ar": []
+    },
+    {
+      "id": "cmd-ip",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر ip",
+      "summary_ar": "إدارة وعرض عناوين الشبكة والواجهات والمسارات والجيران.",
+      "category": "reference",
+      "keywords_ar": [
+        "ip",
+        "مرجع أمر ip",
+        "إدارة وعرض عناوين الشبكة والواجهات والمسارات والجيران.",
+        "ip <OBJECT> <ACTION>",
+        "ip address show",
+        "ip route show",
+        "ip neighbor show"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-network-stack",
+        "cmd-nmcli",
+        "cmd-ss"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "ip",
+      "purpose_ar": "إدارة وعرض عناوين الشبكة والواجهات والمسارات والجيران.",
+      "syntax": "ip <OBJECT> <ACTION>",
+      "provided_by": "iproute",
+      "requires_sudo": false,
+      "risk": "medium",
+      "options": [
+        {
+          "option": "address",
+          "description_ar": "إدارة العناوين",
+          "example": ""
+        },
+        {
+          "option": "link",
+          "description_ar": "إدارة الواجهات",
+          "example": ""
+        },
+        {
+          "option": "route",
+          "description_ar": "إدارة المسارات",
+          "example": ""
+        },
+        {
+          "option": "neighbor",
+          "description_ar": "عرض الجيران",
+          "example": ""
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "عرض العناوين",
+          "command": "ip address show",
+          "explanation_ar": "يعرض عناوين كل الواجهات."
+        },
+        {
+          "title_ar": "عرض المسارات",
+          "command": "ip route show",
+          "explanation_ar": "يعرض البوابة والمسارات."
+        },
+        {
+          "title_ar": "عرض الجيران",
+          "command": "ip neighbor show",
+          "explanation_ar": "يعرض جدول الجيران ARP/NDP."
+        }
+      ],
+      "common_mistakes_ar": []
+    },
+    {
+      "id": "cmd-nmcli",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر nmcli",
+      "summary_ar": "إدارة اتصالات NetworkManager والواجهات وعناوين IP من الطرفية.",
+      "category": "reference",
+      "keywords_ar": [
+        "nmcli",
+        "مرجع أمر nmcli",
+        "إدارة اتصالات NetworkManager والواجهات وعناوين IP من الطرفية.",
+        "nmcli <OBJECT> <COMMAND>",
+        "nmcli device status",
+        "nmcli connection show",
+        "sudo nmcli connection up <NAME>"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-network-stack",
+        "cmd-ip"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "nmcli",
+      "purpose_ar": "إدارة اتصالات NetworkManager والواجهات وعناوين IP من الطرفية.",
+      "syntax": "nmcli <OBJECT> <COMMAND>",
+      "provided_by": "NetworkManager",
+      "requires_sudo": true,
+      "risk": "high",
+      "options": [
+        {
+          "option": "device",
+          "description_ar": "إدارة أجهزة الشبكة",
+          "example": ""
+        },
+        {
+          "option": "connection",
+          "description_ar": "إدارة ملفات الاتصال",
+          "example": ""
+        },
+        {
+          "option": "-f",
+          "description_ar": "تحديد الحقول المعروضة",
+          "example": ""
+        },
+        {
+          "option": "-p",
+          "description_ar": "تنسيق سهل القراءة",
+          "example": ""
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "حالة الأجهزة",
+          "command": "nmcli device status",
+          "explanation_ar": "يعرض الواجهات وحالتها."
+        },
+        {
+          "title_ar": "عرض الاتصالات",
+          "command": "nmcli connection show",
+          "explanation_ar": "يعرض ملفات الاتصالات."
+        },
+        {
+          "title_ar": "تفعيل اتصال",
+          "command": "sudo nmcli connection up <NAME>",
+          "explanation_ar": "يفعّل اتصالاً محفوظاً."
+        }
+      ],
+      "common_mistakes_ar": []
+    },
+    {
+      "id": "cmd-find",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر find",
+      "summary_ar": "البحث عن الملفات والمجلدات حسب الاسم والنوع والحجم والوقت وتنفيذ إجراءات عليها.",
+      "category": "reference",
+      "keywords_ar": [
+        "find",
+        "مرجع أمر find",
+        "البحث عن الملفات والمجلدات حسب الاسم والنوع والحجم والوقت وتنفيذ إجراءات عليها.",
+        "find <PATH> [EXPRESSION]",
+        "find /etc -name '*.conf'",
+        "find /var -type f -size +500M",
+        "find /tmp -type f -mtime 0"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-filesystem-hierarchy",
+        "find-and-clean-large-files",
+        "cmd-grep"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "find",
+      "purpose_ar": "البحث عن الملفات والمجلدات حسب الاسم والنوع والحجم والوقت وتنفيذ إجراءات عليها.",
+      "syntax": "find <PATH> [EXPRESSION]",
+      "provided_by": "findutils",
+      "requires_sudo": false,
+      "risk": "high",
+      "options": [
+        {
+          "option": "-name",
+          "description_ar": "مطابقة الاسم",
+          "example": ""
+        },
+        {
+          "option": "-type",
+          "description_ar": "تحديد ملف أو مجلد",
+          "example": ""
+        },
+        {
+          "option": "-size",
+          "description_ar": "التصفية حسب الحجم",
+          "example": ""
+        },
+        {
+          "option": "-mtime",
+          "description_ar": "التصفية حسب وقت التعديل",
+          "example": ""
+        },
+        {
+          "option": "-exec",
+          "description_ar": "تنفيذ أمر على النتائج",
+          "example": ""
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "بحث بالاسم",
+          "command": "find /etc -name '*.conf'",
+          "explanation_ar": "يعرض ملفات الإعداد."
+        },
+        {
+          "title_ar": "ملفات كبيرة",
+          "command": "find /var -type f -size +500M",
+          "explanation_ar": "يعرض الملفات الأكبر من 500 ميجابايت."
+        },
+        {
+          "title_ar": "ملفات معدلة اليوم",
+          "command": "find /tmp -type f -mtime 0",
+          "explanation_ar": "يعرض ملفات عدلت خلال اليوم."
+        }
+      ],
+      "common_mistakes_ar": [
+        "استخدام -exec rm دون معاينة النتائج أولاً.",
+        "نسيان وضع نمط النجمة داخل علامات اقتباس."
+      ]
+    },
+    {
+      "id": "cmd-grep",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر grep",
+      "summary_ar": "البحث عن نص أو نمط داخل الملفات أو خرج الأوامر.",
+      "category": "reference",
+      "keywords_ar": [
+        "grep",
+        "مرجع أمر grep",
+        "البحث عن نص أو نمط داخل الملفات أو خرج الأوامر.",
+        "grep [OPTIONS] <PATTERN> [FILE]",
+        "grep -n 'error' app.log",
+        "grep -Rni 'server_name' /etc/nginx"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-pipelines",
+        "cmd-find"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "grep",
+      "purpose_ar": "البحث عن نص أو نمط داخل الملفات أو خرج الأوامر.",
+      "syntax": "grep [OPTIONS] <PATTERN> [FILE]",
+      "provided_by": "grep",
+      "requires_sudo": false,
+      "risk": "low",
+      "options": [
+        {
+          "option": "-n",
+          "description_ar": "عرض رقم السطر",
+          "example": ""
+        },
+        {
+          "option": "-i",
+          "description_ar": "تجاهل حالة الأحرف",
+          "example": ""
+        },
+        {
+          "option": "-R",
+          "description_ar": "بحث متكرر",
+          "example": ""
+        },
+        {
+          "option": "-v",
+          "description_ar": "عكس المطابقة",
+          "example": ""
+        },
+        {
+          "option": "-E",
+          "description_ar": "تعبيرات نمطية موسعة",
+          "example": ""
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "بحث مع أرقام الأسطر",
+          "command": "grep -n 'error' app.log",
+          "explanation_ar": "يعرض الأسطر المطابقة وأرقامها."
+        },
+        {
+          "title_ar": "بحث متكرر",
+          "command": "grep -Rni 'server_name' /etc/nginx",
+          "explanation_ar": "يبحث داخل مجلد كامل دون حساسية لحالة الأحرف."
+        }
+      ],
+      "common_mistakes_ar": []
+    },
+    {
+      "id": "cmd-chmod",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر chmod",
+      "summary_ar": "تغيير صلاحيات القراءة والكتابة والتنفيذ للملفات والمجلدات.",
+      "category": "reference",
+      "keywords_ar": [
+        "chmod",
+        "مرجع أمر chmod",
+        "تغيير صلاحيات القراءة والكتابة والتنفيذ للملفات والمجلدات.",
+        "chmod <MODE> <PATH>",
+        "chmod +x script.sh",
+        "chmod 640 secret.conf",
+        "chmod 755 /srv/app"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-linux-permissions",
+        "cmd-chown",
+        "create-user-with-admin-access"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "chmod",
+      "purpose_ar": "تغيير صلاحيات القراءة والكتابة والتنفيذ للملفات والمجلدات.",
+      "syntax": "chmod <MODE> <PATH>",
+      "provided_by": "coreutils",
+      "requires_sudo": false,
+      "risk": "high",
+      "options": [
+        {
+          "option": "u/g/o/a",
+          "description_ar": "المستخدم والمجموعة والآخرون والجميع",
+          "example": ""
+        },
+        {
+          "option": "+/-/=",
+          "description_ar": "إضافة أو إزالة أو تعيين",
+          "example": ""
+        },
+        {
+          "option": "-R",
+          "description_ar": "تطبيق متكرر",
+          "example": ""
+        },
+        {
+          "option": "000–777",
+          "description_ar": "الوضع الرقمي",
+          "example": ""
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "إضافة التنفيذ",
+          "command": "chmod +x script.sh",
+          "explanation_ar": "يجعل السكربت قابلاً للتنفيذ."
+        },
+        {
+          "title_ar": "صلاحية 640",
+          "command": "chmod 640 secret.conf",
+          "explanation_ar": "المالك قراءة وكتابة، المجموعة قراءة، والآخرون بلا صلاحية."
+        },
+        {
+          "title_ar": "مجلد 755",
+          "command": "chmod 755 /srv/app",
+          "explanation_ar": "صلاحيات شائعة لمجلد قابل للتصفح."
+        }
+      ],
+      "common_mistakes_ar": [
+        "استخدام 777 كحل عام.",
+        "استخدام -R على مسار واسع دون مراجعة."
+      ]
+    },
+    {
+      "id": "cmd-chown",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر chown",
+      "summary_ar": "تغيير المستخدم والمجموعة المالكة لملف أو مجلد.",
+      "category": "reference",
+      "keywords_ar": [
+        "chown",
+        "مرجع أمر chown",
+        "تغيير المستخدم والمجموعة المالكة لملف أو مجلد.",
+        "chown [OPTIONS] <USER>:<GROUP> <PATH>",
+        "sudo chown app:app /srv/app",
+        "sudo chown -R app:app /srv/app"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-linux-permissions",
+        "cmd-chmod"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "chown",
+      "purpose_ar": "تغيير المستخدم والمجموعة المالكة لملف أو مجلد.",
+      "syntax": "chown [OPTIONS] <USER>:<GROUP> <PATH>",
+      "provided_by": "coreutils",
+      "requires_sudo": true,
+      "risk": "high",
+      "options": [
+        {
+          "option": "-R",
+          "description_ar": "تطبيق متكرر",
+          "example": ""
+        },
+        {
+          "option": "--reference",
+          "description_ar": "نسخ الملكية من ملف مرجعي",
+          "example": ""
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "تغيير المالك والمجموعة",
+          "command": "sudo chown app:app /srv/app",
+          "explanation_ar": "ينقل الملكية إلى حساب app."
+        },
+        {
+          "title_ar": "تغيير متكرر",
+          "command": "sudo chown -R app:app /srv/app",
+          "explanation_ar": "يطبق على كل المحتويات."
+        }
+      ],
+      "common_mistakes_ar": []
+    },
+    {
+      "id": "cmd-useradd",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر useradd",
+      "summary_ar": "إنشاء حساب مستخدم جديد وفق إعدادات النظام الافتراضية.",
+      "category": "reference",
+      "keywords_ar": [
+        "useradd",
+        "مرجع أمر useradd",
+        "إنشاء حساب مستخدم جديد وفق إعدادات النظام الافتراضية.",
+        "useradd [OPTIONS] <USER>",
+        "sudo useradd ahmed",
+        "sudo useradd -s /bin/bash ahmed",
+        "sudo useradd -G wheel,developers ahmed"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-linux-users",
+        "create-user-with-admin-access",
+        "cmd-usermod"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "useradd",
+      "purpose_ar": "إنشاء حساب مستخدم جديد وفق إعدادات النظام الافتراضية.",
+      "syntax": "useradd [OPTIONS] <USER>",
+      "provided_by": "shadow-utils",
+      "requires_sudo": true,
+      "risk": "high",
+      "options": [
+        {
+          "option": "-m",
+          "description_ar": "إنشاء مجلد منزلي",
+          "example": ""
+        },
+        {
+          "option": "-s",
+          "description_ar": "تحديد shell",
+          "example": ""
+        },
+        {
+          "option": "-G",
+          "description_ar": "مجموعات إضافية",
+          "example": ""
+        },
+        {
+          "option": "-u",
+          "description_ar": "تحديد UID",
+          "example": ""
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "إنشاء مستخدم",
+          "command": "sudo useradd ahmed",
+          "explanation_ar": "ينشئ الحساب."
+        },
+        {
+          "title_ar": "تحديد shell",
+          "command": "sudo useradd -s /bin/bash ahmed",
+          "explanation_ar": "يحدد الصدفة."
+        },
+        {
+          "title_ar": "إضافة مجموعات",
+          "command": "sudo useradd -G wheel,developers ahmed",
+          "explanation_ar": "يضيف مجموعات إضافية."
+        }
+      ],
+      "common_mistakes_ar": []
+    },
+    {
+      "id": "cmd-usermod",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر usermod",
+      "summary_ar": "تعديل خصائص حساب موجود مثل المجموعات والاسم والمجلد والصدفة.",
+      "category": "reference",
+      "keywords_ar": [
+        "usermod",
+        "مرجع أمر usermod",
+        "تعديل خصائص حساب موجود مثل المجموعات والاسم والمجلد والصدفة.",
+        "usermod [OPTIONS] <USER>",
+        "sudo usermod -aG wheel ahmed",
+        "sudo usermod -s /bin/bash ahmed"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-linux-users",
+        "create-user-with-admin-access",
+        "cmd-useradd"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "usermod",
+      "purpose_ar": "تعديل خصائص حساب موجود مثل المجموعات والاسم والمجلد والصدفة.",
+      "syntax": "usermod [OPTIONS] <USER>",
+      "provided_by": "shadow-utils",
+      "requires_sudo": true,
+      "risk": "high",
+      "options": [
+        {
+          "option": "-aG",
+          "description_ar": "إضافة مجموعات دون استبدال",
+          "example": ""
+        },
+        {
+          "option": "-s",
+          "description_ar": "تغيير shell",
+          "example": ""
+        },
+        {
+          "option": "-d",
+          "description_ar": "تغيير المجلد المنزلي",
+          "example": ""
+        },
+        {
+          "option": "-L / -U",
+          "description_ar": "قفل أو فتح الحساب",
+          "example": ""
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "إضافة إلى wheel",
+          "command": "sudo usermod -aG wheel ahmed",
+          "explanation_ar": "يضيف المستخدم دون حذف مجموعاته الحالية."
+        },
+        {
+          "title_ar": "تغيير shell",
+          "command": "sudo usermod -s /bin/bash ahmed",
+          "explanation_ar": "يغير الصدفة."
+        }
+      ],
+      "common_mistakes_ar": [
+        "استخدام -G دون -a قد يستبدل قائمة المجموعات الإضافية."
+      ]
+    },
+    {
+      "id": "cmd-lsblk",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر lsblk",
+      "summary_ar": "عرض الأقراص والأقسام وأنظمة الملفات ونقاط الربط في شكل شجري.",
+      "category": "reference",
+      "keywords_ar": [
+        "lsblk",
+        "مرجع أمر lsblk",
+        "عرض الأقراص والأقسام وأنظمة الملفات ونقاط الربط في شكل شجري.",
+        "lsblk [OPTIONS]",
+        "lsblk -f",
+        "lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINTS"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-storage-stack",
+        "find-and-clean-large-files"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "lsblk",
+      "purpose_ar": "عرض الأقراص والأقسام وأنظمة الملفات ونقاط الربط في شكل شجري.",
+      "syntax": "lsblk [OPTIONS]",
+      "provided_by": "util-linux",
+      "requires_sudo": false,
+      "risk": "low",
+      "options": [
+        {
+          "option": "-f",
+          "description_ar": "معلومات أنظمة الملفات",
+          "example": ""
+        },
+        {
+          "option": "-o",
+          "description_ar": "تحديد الأعمدة",
+          "example": ""
+        },
+        {
+          "option": "-p",
+          "description_ar": "المسارات الكاملة للأجهزة",
+          "example": ""
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "عرض أنظمة الملفات",
+          "command": "lsblk -f",
+          "explanation_ar": "يعرض UUID ونوع النظام ونقطة الربط."
+        },
+        {
+          "title_ar": "تحديد أعمدة",
+          "command": "lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINTS",
+          "explanation_ar": "يعرض أعمدة مختارة."
+        }
+      ],
+      "common_mistakes_ar": []
+    },
+    {
+      "id": "cmd-restorecon",
+      "entity_type": "command",
+      "title_ar": "مرجع أمر restorecon",
+      "summary_ar": "إعادة سياق SELinux الافتراضي لملف أو مسار وفق قواعد السياسة.",
+      "category": "reference",
+      "keywords_ar": [
+        "restorecon",
+        "مرجع أمر restorecon",
+        "إعادة سياق SELinux الافتراضي لملف أو مسار وفق قواعد السياسة.",
+        "restorecon [OPTIONS] <PATH>",
+        "sudo restorecon -v /var/www/html/index.html",
+        "sudo restorecon -Rv /var/www/html"
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-selinux",
+        "diagnose-selinux-denial"
+      ],
+      "tags_ar": [
+        "مرجع",
+        "سطر الأوامر"
+      ],
+      "status": "reviewed",
+      "command_name": "restorecon",
+      "purpose_ar": "إعادة سياق SELinux الافتراضي لملف أو مسار وفق قواعد السياسة.",
+      "syntax": "restorecon [OPTIONS] <PATH>",
+      "provided_by": "policycoreutils",
+      "requires_sudo": true,
+      "risk": "medium",
+      "options": [
+        {
+          "option": "-v",
+          "description_ar": "عرض التغييرات",
+          "example": ""
+        },
+        {
+          "option": "-R",
+          "description_ar": "تطبيق متكرر",
+          "example": ""
+        },
+        {
+          "option": "-n",
+          "description_ar": "معاينة دون تغيير",
+          "example": ""
+        }
+      ],
+      "examples": [
+        {
+          "title_ar": "مسار واحد",
+          "command": "sudo restorecon -v /var/www/html/index.html",
+          "explanation_ar": "يعيد السياق ويعرض التغيير."
+        },
+        {
+          "title_ar": "مجلد متكرر",
+          "command": "sudo restorecon -Rv /var/www/html",
+          "explanation_ar": "يعالج المجلد ومحتوياته."
+        }
+      ],
+      "common_mistakes_ar": []
+    },
+    {
+      "id": "concept-systemd",
+      "entity_type": "concept",
+      "title_ar": "ما هو systemd؟",
+      "summary_ar": "نظام التهيئة وإدارة الخدمات والوحدات المستخدم في RHEL.",
+      "category": "concepts",
+      "keywords_ar": [
+        "ما هو systemd؟",
+        "نظام التهيئة وإدارة الخدمات والوحدات المستخدم في RHEL.",
+        "الخدمة Service نوع واحد من وحدات systemd وليست كل الوحدات.",
+        "start يشغل الآن، بينما enable ينشئ ارتباطات لبدء الوحدة مع الإقلاع.",
+        "ملفات الوحدات الأصلية غالباً في /usr/lib/systemd/system والتخصيصات في /etc/systemd/system.",
+        "journalctl هو الواجهة الطبيعية لسجلات الوحدات."
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "cmd-systemctl",
+        "cmd-journalctl",
+        "troubleshoot-systemd-service",
+        "path-rhel-beginner"
+      ],
+      "tags_ar": [
+        "مفهوم",
+        "أساسيات"
+      ],
+      "status": "reviewed",
+      "definition_ar": "نظام التهيئة وإدارة الخدمات والوحدات المستخدم في RHEL.",
+      "why_it_matters_ar": "فهمه يربط بين تشغيل الخدمة والإقلاع والاعتماديات والسجلات.",
+      "key_points_ar": [
+        "الخدمة Service نوع واحد من وحدات systemd وليست كل الوحدات.",
+        "start يشغل الآن، بينما enable ينشئ ارتباطات لبدء الوحدة مع الإقلاع.",
+        "ملفات الوحدات الأصلية غالباً في /usr/lib/systemd/system والتخصيصات في /etc/systemd/system.",
+        "journalctl هو الواجهة الطبيعية لسجلات الوحدات."
+      ],
+      "mental_model_ar": "فكر في systemd كمدير يقرأ تعريف الوحدة، يحل اعتمادياتها، يشغلها، ويراقب حالتها.",
+      "misconceptions_ar": [
+        "enable لا يعني أن الخدمة تعمل الآن.",
+        "daemon-reload لا يعيد تشغيل الخدمة؛ بل يعيد قراءة ملفات الوحدات."
+      ]
+    },
+    {
+      "id": "concept-selinux",
+      "entity_type": "concept",
+      "title_ar": "ما هو SELinux؟",
+      "summary_ar": "نظام تحكم إلزامي بالوصول يضيف سياسة أمنية فوق صلاحيات لينكس التقليدية.",
+      "category": "concepts",
+      "keywords_ar": [
+        "ما هو SELinux؟",
+        "نظام تحكم إلزامي بالوصول يضيف سياسة أمنية فوق صلاحيات لينكس التقليدية.",
+        "Enforcing يطبق السياسة ويسجل الرفض.",
+        "Permissive يسجل الرفض دون منعه ويستخدم للتشخيص المؤقت.",
+        "السياق الأمني يتضمن user وrole وtype وlevel، وغالباً يكون type هو الأهم للإدارة اليومية.",
+        "الحل الصحيح عادةً سياق مناسب أو Boolean موثق، وليس تعطيل SELinux."
+      ],
+      "difficulty": "intermediate",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "diagnose-selinux-denial",
+        "cmd-restorecon",
+        "install-nginx-web-server",
+        "path-rhel-admin"
+      ],
+      "tags_ar": [
+        "مفهوم",
+        "أساسيات"
+      ],
+      "status": "reviewed",
+      "definition_ar": "نظام تحكم إلزامي بالوصول يضيف سياسة أمنية فوق صلاحيات لينكس التقليدية.",
+      "why_it_matters_ar": "يمنع الخدمة من تنفيذ سلوك غير مسموح حتى لو كانت صلاحيات chmod تسمح به.",
+      "key_points_ar": [
+        "Enforcing يطبق السياسة ويسجل الرفض.",
+        "Permissive يسجل الرفض دون منعه ويستخدم للتشخيص المؤقت.",
+        "السياق الأمني يتضمن user وrole وtype وlevel، وغالباً يكون type هو الأهم للإدارة اليومية.",
+        "الحل الصحيح عادةً سياق مناسب أو Boolean موثق، وليس تعطيل SELinux."
+      ],
+      "mental_model_ar": "تخيل حارسين: صلاحيات لينكس التقليدية أولاً، ثم SELinux الذي يراجع هل نوع العملية مسموح ضمن السياسة.",
+      "misconceptions_ar": [
+        "Permission denied لا يعني دائماً أن SELinux هو السبب.",
+        "chmod 777 لا يحل رفض SELinux."
+      ]
+    },
+    {
+      "id": "concept-package-management",
+      "entity_type": "concept",
+      "title_ar": "إدارة الحزم في RHEL",
+      "summary_ar": "منظومة تثبيت وتحديث وإزالة البرامج باستخدام مستودعات وحزم RPM.",
+      "category": "concepts",
+      "keywords_ar": [
+        "إدارة الحزم في RHEL",
+        "منظومة تثبيت وتحديث وإزالة البرامج باستخدام مستودعات وحزم RPM.",
+        "DNF يحل الاعتماديات ويتعامل مع المستودعات والمعاملات.",
+        "RPM يعرف الحزم المثبتة وملفاتها ويمكنه فحص سلامتها.",
+        "المستودع مصدر موثوق للبيانات الوصفية والحزم.",
+        "سجل DNF يساعد على معرفة ما تغير والتراجع عن بعض المعاملات."
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "cmd-dnf",
+        "cmd-rpm",
+        "install-package-dnf",
+        "path-rhel-beginner"
+      ],
+      "tags_ar": [
+        "مفهوم",
+        "أساسيات"
+      ],
+      "status": "reviewed",
+      "definition_ar": "منظومة تثبيت وتحديث وإزالة البرامج باستخدام مستودعات وحزم RPM.",
+      "why_it_matters_ar": "تفصل بين مدير المعاملات DNF وصيغة الحزمة وأداة الاستعلام RPM.",
+      "key_points_ar": [
+        "DNF يحل الاعتماديات ويتعامل مع المستودعات والمعاملات.",
+        "RPM يعرف الحزم المثبتة وملفاتها ويمكنه فحص سلامتها.",
+        "المستودع مصدر موثوق للبيانات الوصفية والحزم.",
+        "سجل DNF يساعد على معرفة ما تغير والتراجع عن بعض المعاملات."
+      ],
+      "mental_model_ar": "DNF هو المنسق، والمستودع هو المخزن، وRPM هو الحزمة وأداة المستوى الأدنى.",
+      "misconceptions_ar": []
+    },
+    {
+      "id": "concept-firewalld",
+      "entity_type": "concept",
+      "title_ar": "فكرة firewalld والمناطق",
+      "summary_ar": "جدار ناري ديناميكي ينظم القواعد حسب مناطق مرتبطة بواجهات أو مصادر.",
+      "category": "concepts",
+      "keywords_ar": [
+        "فكرة firewalld والمناطق",
+        "جدار ناري ديناميكي ينظم القواعد حسب مناطق مرتبطة بواجهات أو مصادر.",
+        "المنطقة Zone تمثل مستوى ثقة وقواعد لمجموعة من الاتصالات.",
+        "الإعداد runtime يعمل فوراً ويضيع بعد إعادة التحميل.",
+        "الإعداد permanent يحفظ لكنه يحتاج reload ليصبح فعالاً.",
+        "الخدمة Service تعريف معروف لمنافذ وبروتوكولات، وغالباً أفضل من رقم منفذ يدوي."
+      ],
+      "difficulty": "intermediate",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "cmd-firewall-cmd",
+        "install-nginx-web-server",
+        "concept-network-stack",
+        "path-rhel-admin"
+      ],
+      "tags_ar": [
+        "مفهوم",
+        "أساسيات"
+      ],
+      "status": "reviewed",
+      "definition_ar": "جدار ناري ديناميكي ينظم القواعد حسب مناطق مرتبطة بواجهات أو مصادر.",
+      "why_it_matters_ar": "يمنع فتح قاعدة في المكان الخطأ ويساعد على فهم الفرق بين runtime وpermanent.",
+      "key_points_ar": [
+        "المنطقة Zone تمثل مستوى ثقة وقواعد لمجموعة من الاتصالات.",
+        "الإعداد runtime يعمل فوراً ويضيع بعد إعادة التحميل.",
+        "الإعداد permanent يحفظ لكنه يحتاج reload ليصبح فعالاً.",
+        "الخدمة Service تعريف معروف لمنافذ وبروتوكولات، وغالباً أفضل من رقم منفذ يدوي."
+      ],
+      "mental_model_ar": "الواجهة تدخل إلى منطقة، والمنطقة تحتوي القواعد التي تسمح أو ترفض المرور.",
+      "misconceptions_ar": [
+        "فتح المنفذ لا يشغل الخدمة ولا يجعلها تستمع.",
+        "وجود قاعدة في public لا يفيد إذا كانت الواجهة في منطقة أخرى."
+      ]
+    },
+    {
+      "id": "concept-linux-permissions",
+      "entity_type": "concept",
+      "title_ar": "صلاحيات لينكس والملكية",
+      "summary_ar": "نموذج الوصول التقليدي المبني على المالك والمجموعة والآخرين وصلاحيات القراءة والكتابة والتنفيذ.",
+      "category": "concepts",
+      "keywords_ar": [
+        "صلاحيات لينكس والملكية",
+        "نموذج الوصول التقليدي المبني على المالك والمجموعة والآخرين وصلاحيات القراءة والكتابة والتنفيذ.",
+        "كل ملف له مالك ومجموعة.",
+        "r وw وx يتغير معناها جزئياً بين الملف والمجلد.",
+        "القيم الرقمية تجمع 4 للقراءة و2 للكتابة و1 للتنفيذ.",
+        "ACL يضيف صلاحيات أكثر دقة دون تغيير المالك الأساسي."
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "cmd-chmod",
+        "cmd-chown",
+        "concept-linux-users",
+        "path-rhel-beginner"
+      ],
+      "tags_ar": [
+        "مفهوم",
+        "أساسيات"
+      ],
+      "status": "reviewed",
+      "definition_ar": "نموذج الوصول التقليدي المبني على المالك والمجموعة والآخرين وصلاحيات القراءة والكتابة والتنفيذ.",
+      "why_it_matters_ar": "هو أول طبقة لفهم لماذا يستطيع مستخدم الوصول إلى ملف أو تشغيله.",
+      "key_points_ar": [
+        "كل ملف له مالك ومجموعة.",
+        "r وw وx يتغير معناها جزئياً بين الملف والمجلد.",
+        "القيم الرقمية تجمع 4 للقراءة و2 للكتابة و1 للتنفيذ.",
+        "ACL يضيف صلاحيات أكثر دقة دون تغيير المالك الأساسي."
+      ],
+      "mental_model_ar": "ثلاث خانات متتابعة: المالك ثم المجموعة ثم الآخرون، ولكل خانة r وw وx.",
+      "misconceptions_ar": [
+        "777 ليس إصلاحاً آمناً.",
+        "صلاحية x على المجلد تعني القدرة على عبوره، لا تشغيله."
+      ]
+    },
+    {
+      "id": "concept-linux-users",
+      "entity_type": "concept",
+      "title_ar": "المستخدمون والمجموعات",
+      "summary_ar": "آلية تعريف الهويات المحلية وربطها بمجموعات وصلاحيات وملفات منزلية وصدفات.",
+      "category": "concepts",
+      "keywords_ar": [
+        "المستخدمون والمجموعات",
+        "آلية تعريف الهويات المحلية وربطها بمجموعات وصلاحيات وملفات منزلية وصدفات.",
+        "UID هو المعرّف الحقيقي، والاسم واجهة بشرية له.",
+        "المجموعة الأساسية تختلف عن المجموعات الإضافية.",
+        "مجموعة wheel تستخدم عادةً لمنح sudo في RHEL.",
+        "حساب الخدمة قد لا يحتاج shell تفاعلية."
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "cmd-useradd",
+        "cmd-usermod",
+        "create-user-with-admin-access",
+        "concept-linux-permissions"
+      ],
+      "tags_ar": [
+        "مفهوم",
+        "أساسيات"
+      ],
+      "status": "reviewed",
+      "definition_ar": "آلية تعريف الهويات المحلية وربطها بمجموعات وصلاحيات وملفات منزلية وصدفات.",
+      "why_it_matters_ar": "تساعد على إدارة الوصول الإداري وفصل الخدمات عن المستخدمين البشر.",
+      "key_points_ar": [
+        "UID هو المعرّف الحقيقي، والاسم واجهة بشرية له.",
+        "المجموعة الأساسية تختلف عن المجموعات الإضافية.",
+        "مجموعة wheel تستخدم عادةً لمنح sudo في RHEL.",
+        "حساب الخدمة قد لا يحتاج shell تفاعلية."
+      ],
+      "mental_model_ar": "المستخدم هو هوية، والمجموعة تجمع هويات، والملفات تحمل أرقام UID وGID.",
+      "misconceptions_ar": []
+    },
+    {
+      "id": "concept-network-stack",
+      "entity_type": "concept",
+      "title_ar": "طبقات الشبكة في الخادم",
+      "summary_ar": "سلسلة تبدأ من الواجهة والعنوان والمسار ثم المنفذ والخدمة والجدار الناري.",
+      "category": "concepts",
+      "keywords_ar": [
+        "طبقات الشبكة في الخادم",
+        "سلسلة تبدأ من الواجهة والعنوان والمسار ثم المنفذ والخدمة والجدار الناري.",
+        "ip يعرض الواجهة والعناوين والمسارات.",
+        "NetworkManager يدير ملفات الاتصال والاستمرارية.",
+        "ss يثبت هل توجد عملية تستمع على المنفذ.",
+        "firewalld يقرر هل يسمح بالوصول عبر المنطقة.",
+        "اختبار التطبيق مثل curl يأتي بعد التأكد من الطبقات الأدنى."
+      ],
+      "difficulty": "intermediate",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "cmd-ip",
+        "cmd-nmcli",
+        "cmd-ss",
+        "cmd-firewall-cmd",
+        "troubleshoot-ssh-connection"
+      ],
+      "tags_ar": [
+        "مفهوم",
+        "أساسيات"
+      ],
+      "status": "reviewed",
+      "definition_ar": "سلسلة تبدأ من الواجهة والعنوان والمسار ثم المنفذ والخدمة والجدار الناري.",
+      "why_it_matters_ar": "تمنحك ترتيباً منطقياً للتشخيص بدلاً من تجربة أوامر عشوائية.",
+      "key_points_ar": [
+        "ip يعرض الواجهة والعناوين والمسارات.",
+        "NetworkManager يدير ملفات الاتصال والاستمرارية.",
+        "ss يثبت هل توجد عملية تستمع على المنفذ.",
+        "firewalld يقرر هل يسمح بالوصول عبر المنطقة.",
+        "اختبار التطبيق مثل curl يأتي بعد التأكد من الطبقات الأدنى."
+      ],
+      "mental_model_ar": "واجهة ← عنوان IP ← مسار ← جدار ناري ← منفذ مستمع ← تطبيق.",
+      "misconceptions_ar": []
+    },
+    {
+      "id": "concept-filesystem-hierarchy",
+      "entity_type": "concept",
+      "title_ar": "هيكل نظام الملفات في لينكس",
+      "summary_ar": "تنظيم قياسي يوزع الإعدادات والسجلات والبرامج والبيانات المؤقتة وبيانات الخدمات على مسارات معروفة.",
+      "category": "concepts",
+      "keywords_ar": [
+        "هيكل نظام الملفات في لينكس",
+        "تنظيم قياسي يوزع الإعدادات والسجلات والبرامج والبيانات المؤقتة وبيانات الخدمات على مسارات معروفة.",
+        "/etc للإعدادات على مستوى النظام.",
+        "/var للبيانات المتغيرة مثل السجلات والكاش.",
+        "/usr للبرامج والموارد المشتركة.",
+        "/home لبيانات المستخدمين.",
+        "/run لبيانات التشغيل المؤقتة منذ الإقلاع."
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "cmd-find",
+        "cmd-lsblk",
+        "find-and-clean-large-files",
+        "path-rhel-beginner"
+      ],
+      "tags_ar": [
+        "مفهوم",
+        "أساسيات"
+      ],
+      "status": "reviewed",
+      "definition_ar": "تنظيم قياسي يوزع الإعدادات والسجلات والبرامج والبيانات المؤقتة وبيانات الخدمات على مسارات معروفة.",
+      "why_it_matters_ar": "يساعدك على توقع مكان الملف وفهم ما يمكن حذفه وما يجب حمايته.",
+      "key_points_ar": [
+        "/etc للإعدادات على مستوى النظام.",
+        "/var للبيانات المتغيرة مثل السجلات والكاش.",
+        "/usr للبرامج والموارد المشتركة.",
+        "/home لبيانات المستخدمين.",
+        "/run لبيانات التشغيل المؤقتة منذ الإقلاع."
+      ],
+      "mental_model_ar": "المسار الجذري / شجرة، وكل فرع له غرض متوقع.",
+      "misconceptions_ar": [
+        "وجود ملف كبير لا يعني أنه آمن للحذف.",
+        "/tmp ليس بديلاً دائماً لتخزين البيانات."
+      ]
+    },
+    {
+      "id": "concept-storage-stack",
+      "entity_type": "concept",
+      "title_ar": "طبقات التخزين في RHEL",
+      "summary_ar": "سلسلة من جهاز فعلي أو افتراضي ثم أقسام أو LVM ثم نظام ملفات ثم نقطة ربط.",
+      "category": "concepts",
+      "keywords_ar": [
+        "طبقات التخزين في RHEL",
+        "سلسلة من جهاز فعلي أو افتراضي ثم أقسام أو LVM ثم نظام ملفات ثم نقطة ربط.",
+        "lsblk يعرض الأجهزة والعلاقات الأساسية.",
+        "LVM يفصل مساحة التخزين إلى PV وVG وLV.",
+        "نظام الملفات مثل XFS أو ext4 يعيش فوق جهاز أو LV.",
+        "mount يربط نظام الملفات بمجلد في الشجرة."
+      ],
+      "difficulty": "intermediate",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "cmd-lsblk",
+        "find-and-clean-large-files",
+        "path-rhel-admin"
+      ],
+      "tags_ar": [
+        "مفهوم",
+        "أساسيات"
+      ],
+      "status": "reviewed",
+      "definition_ar": "سلسلة من جهاز فعلي أو افتراضي ثم أقسام أو LVM ثم نظام ملفات ثم نقطة ربط.",
+      "why_it_matters_ar": "تمنع الخلط بين توسيع القرص وتوسيع Logical Volume وتوسيع نظام الملفات.",
+      "key_points_ar": [
+        "lsblk يعرض الأجهزة والعلاقات الأساسية.",
+        "LVM يفصل مساحة التخزين إلى PV وVG وLV.",
+        "نظام الملفات مثل XFS أو ext4 يعيش فوق جهاز أو LV.",
+        "mount يربط نظام الملفات بمجلد في الشجرة."
+      ],
+      "mental_model_ar": "Disk/Partition ← PV ← VG ← LV ← Filesystem ← Mount point.",
+      "misconceptions_ar": []
+    },
+    {
+      "id": "concept-ssh",
+      "entity_type": "concept",
+      "title_ar": "كيف يعمل SSH؟",
+      "summary_ar": "بروتوكول آمن يربط العميل بخدمة sshd ويجري تفاوضاً ومصادقة ثم يفتح قناة مشفرة.",
+      "category": "concepts",
+      "keywords_ar": [
+        "كيف يعمل SSH؟",
+        "بروتوكول آمن يربط العميل بخدمة sshd ويجري تفاوضاً ومصادقة ثم يفتح قناة مشفرة.",
+        "العميل ssh يتصل بخدمة sshd على الخادم.",
+        "المفتاح العام يوضع على الخادم والخاص يبقى لدى العميل.",
+        "ملف known_hosts يتحقق من هوية الخادم.",
+        "وضع -vvv يوضح مرحلة الفشل."
+      ],
+      "difficulty": "intermediate",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "cmd-ssh",
+        "troubleshoot-ssh-connection",
+        "concept-network-stack",
+        "path-rhel-troubleshooting"
+      ],
+      "tags_ar": [
+        "مفهوم",
+        "أساسيات"
+      ],
+      "status": "reviewed",
+      "definition_ar": "بروتوكول آمن يربط العميل بخدمة sshd ويجري تفاوضاً ومصادقة ثم يفتح قناة مشفرة.",
+      "why_it_matters_ar": "يوضح لماذا قد تكون المشكلة شبكة أو جداراً نارياً أو خدمة أو مفتاحاً أو حساباً.",
+      "key_points_ar": [
+        "العميل ssh يتصل بخدمة sshd على الخادم.",
+        "المفتاح العام يوضع على الخادم والخاص يبقى لدى العميل.",
+        "ملف known_hosts يتحقق من هوية الخادم.",
+        "وضع -vvv يوضح مرحلة الفشل."
+      ],
+      "mental_model_ar": "Client → TCP port → sshd → host key → user authentication → shell.",
+      "misconceptions_ar": []
+    },
+    {
+      "id": "concept-pipelines",
+      "entity_type": "concept",
+      "title_ar": "الأنابيب وإعادة توجيه النصوص",
+      "summary_ar": "طريقة تركيب أوامر صغيرة بحيث يصبح خرج أمر مدخلاً لآخر، مع حفظ أو تحويل stdout وstderr.",
+      "category": "concepts",
+      "keywords_ar": [
+        "الأنابيب وإعادة توجيه النصوص",
+        "طريقة تركيب أوامر صغيرة بحيث يصبح خرج أمر مدخلاً لآخر، مع حفظ أو تحويل stdout وstderr.",
+        "| يمرر stdout إلى الأمر التالي.",
+        "> يستبدل ملفاً و>> يضيف إلى نهايته.",
+        "2> يوجه stderr و2>&1 يدمجه مع stdout.",
+        "الأوامر مثل grep وsort وawk تصبح أقوى عند تركيبها."
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "cmd-grep",
+        "cmd-find",
+        "path-rhel-beginner"
+      ],
+      "tags_ar": [
+        "مفهوم",
+        "أساسيات"
+      ],
+      "status": "reviewed",
+      "definition_ar": "طريقة تركيب أوامر صغيرة بحيث يصبح خرج أمر مدخلاً لآخر، مع حفظ أو تحويل stdout وstderr.",
+      "why_it_matters_ar": "هي أساس قوة الطرفية في البحث والتحليل والأتمتة.",
+      "key_points_ar": [
+        "| يمرر stdout إلى الأمر التالي.",
+        "> يستبدل ملفاً و>> يضيف إلى نهايته.",
+        "2> يوجه stderr و2>&1 يدمجه مع stdout.",
+        "الأوامر مثل grep وsort وawk تصبح أقوى عند تركيبها."
+      ],
+      "mental_model_ar": "كل أمر آلة صغيرة: يدخل نصاً ويخرج نصاً يمكن تمريره للآلة التالية.",
+      "misconceptions_ar": []
+    },
+    {
+      "id": "path-rhel-beginner",
+      "entity_type": "learning_path",
+      "title_ar": "مسار RHEL للمبتدئ",
+      "summary_ar": "مسار تأسيسي يبدأ بالتنقل والملفات ثم الصلاحيات والحزم والخدمات والسجلات.",
+      "category": "learning",
+      "keywords_ar": [
+        "مسار RHEL للمبتدئ",
+        "مسار تأسيسي يبدأ بالتنقل والملفات ثم الصلاحيات والحزم والخدمات والسجلات.",
+        "التنقل بثقة داخل النظام.",
+        "إدارة الملفات والصلاحيات الأساسية.",
+        "تثبيت برنامج وتشغيل خدمته.",
+        "قراءة السجلات الأولية."
+      ],
+      "difficulty": "beginner",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "concept-systemd",
+        "concept-package-management",
+        "path-rhel-admin"
+      ],
+      "tags_ar": [
+        "مسار تعلم"
+      ],
+      "status": "reviewed",
+      "description_ar": "مسار تأسيسي يبدأ بالتنقل والملفات ثم الصلاحيات والحزم والخدمات والسجلات.",
+      "estimated_hours": 8,
+      "modules": [
+        {
+          "entity_id": "concept-filesystem-hierarchy",
+          "objective_ar": "فهم شجرة الملفات وأماكن الإعدادات والسجلات.",
+          "optional": false
+        },
+        {
+          "entity_id": "legacy-nav-pwd",
+          "objective_ar": "معرفة المجلد الحالي.",
+          "optional": false
+        },
+        {
+          "entity_id": "legacy-nav-ls",
+          "objective_ar": "عرض الملفات والمجلدات.",
+          "optional": false
+        },
+        {
+          "entity_id": "legacy-file-cp",
+          "objective_ar": "نسخ الملفات.",
+          "optional": false
+        },
+        {
+          "entity_id": "concept-pipelines",
+          "objective_ar": "فهم الأنابيب وتوجيه الخرج.",
+          "optional": false
+        },
+        {
+          "entity_id": "concept-linux-permissions",
+          "objective_ar": "فهم المالك والمجموعة وrwx.",
+          "optional": false
+        },
+        {
+          "entity_id": "cmd-chmod",
+          "objective_ar": "تطبيق الصلاحيات عملياً.",
+          "optional": false
+        },
+        {
+          "entity_id": "concept-package-management",
+          "objective_ar": "فهم DNF وRPM والمستودعات.",
+          "optional": false
+        },
+        {
+          "entity_id": "install-package-dnf",
+          "objective_ar": "تنفيذ دورة تثبيت حزمة كاملة.",
+          "optional": false
+        },
+        {
+          "entity_id": "concept-systemd",
+          "objective_ar": "فهم الخدمات والإقلاع.",
+          "optional": false
+        },
+        {
+          "entity_id": "cmd-systemctl",
+          "objective_ar": "إدارة خدمة.",
+          "optional": false
+        },
+        {
+          "entity_id": "cmd-journalctl",
+          "objective_ar": "قراءة سجل الخدمة.",
+          "optional": false
+        }
+      ],
+      "outcomes_ar": [
+        "التنقل بثقة داخل النظام.",
+        "إدارة الملفات والصلاحيات الأساسية.",
+        "تثبيت برنامج وتشغيل خدمته.",
+        "قراءة السجلات الأولية."
+      ]
+    },
+    {
+      "id": "path-rhel-admin",
+      "entity_type": "learning_path",
+      "title_ar": "مسار مسؤول أنظمة RHEL",
+      "summary_ar": "مسار متوسط يجمع المستخدمين والشبكة والتخزين والجدار الناري وSELinux وحل المشكلات.",
+      "category": "learning",
+      "keywords_ar": [
+        "مسار مسؤول أنظمة RHEL",
+        "مسار متوسط يجمع المستخدمين والشبكة والتخزين والجدار الناري وSELinux وحل المشكلات.",
+        "إدارة المستخدمين والصلاحيات الإدارية.",
+        "تشخيص الشبكة والمنافذ.",
+        "إدارة التخزين والجدار الناري.",
+        "حل رفض SELinux دون تعطيله."
+      ],
+      "difficulty": "intermediate",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "path-rhel-beginner",
+        "path-rhel-troubleshooting"
+      ],
+      "tags_ar": [
+        "مسار تعلم"
+      ],
+      "status": "reviewed",
+      "description_ar": "مسار متوسط يجمع المستخدمين والشبكة والتخزين والجدار الناري وSELinux وحل المشكلات.",
+      "estimated_hours": 16,
+      "modules": [
+        {
+          "entity_id": "concept-linux-users",
+          "objective_ar": "فهم الحسابات والمجموعات.",
+          "optional": false
+        },
+        {
+          "entity_id": "create-user-with-admin-access",
+          "objective_ar": "إنشاء حساب إداري بطريقة صحيحة.",
+          "optional": false
+        },
+        {
+          "entity_id": "concept-network-stack",
+          "objective_ar": "فهم ترتيب طبقات الشبكة.",
+          "optional": false
+        },
+        {
+          "entity_id": "cmd-ip",
+          "objective_ar": "فحص العناوين والمسارات.",
+          "optional": false
+        },
+        {
+          "entity_id": "cmd-nmcli",
+          "objective_ar": "إدارة اتصالات NetworkManager.",
+          "optional": false
+        },
+        {
+          "entity_id": "concept-firewalld",
+          "objective_ar": "فهم المناطق والإعداد الدائم.",
+          "optional": false
+        },
+        {
+          "entity_id": "cmd-firewall-cmd",
+          "objective_ar": "إدارة قواعد الوصول.",
+          "optional": false
+        },
+        {
+          "entity_id": "concept-storage-stack",
+          "objective_ar": "فهم طبقات التخزين.",
+          "optional": false
+        },
+        {
+          "entity_id": "cmd-lsblk",
+          "objective_ar": "قراءة خريطة الأقراص.",
+          "optional": false
+        },
+        {
+          "entity_id": "find-and-clean-large-files",
+          "objective_ar": "تشخيص امتلاء القرص.",
+          "optional": false
+        },
+        {
+          "entity_id": "concept-selinux",
+          "objective_ar": "فهم التحكم الإلزامي.",
+          "optional": false
+        },
+        {
+          "entity_id": "cmd-restorecon",
+          "objective_ar": "إصلاح سياقات الملفات.",
+          "optional": false
+        },
+        {
+          "entity_id": "troubleshoot-systemd-service",
+          "objective_ar": "تشخيص خدمة فاشلة.",
+          "optional": false
+        }
+      ],
+      "outcomes_ar": [
+        "إدارة المستخدمين والصلاحيات الإدارية.",
+        "تشخيص الشبكة والمنافذ.",
+        "إدارة التخزين والجدار الناري.",
+        "حل رفض SELinux دون تعطيله."
+      ]
+    },
+    {
+      "id": "path-rhel-troubleshooting",
+      "entity_type": "learning_path",
+      "title_ar": "مسار منهجية حل مشكلات RHEL",
+      "summary_ar": "مسار يدرّبك على التشخيص من العرض إلى الدليل ثم التحقق والإصلاح والتراجع.",
+      "category": "learning",
+      "keywords_ar": [
+        "مسار منهجية حل مشكلات RHEL",
+        "مسار يدرّبك على التشخيص من العرض إلى الدليل ثم التحقق والإصلاح والتراجع.",
+        "اتباع تسلسل تشخيص قابل للتكرار.",
+        "جمع دليل قبل تغيير النظام.",
+        "التحقق من الحل ووضع خطة تراجع."
+      ],
+      "difficulty": "intermediate",
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "related_entities": [
+        "path-rhel-admin",
+        "troubleshoot-systemd-service"
+      ],
+      "tags_ar": [
+        "مسار تعلم"
+      ],
+      "status": "reviewed",
+      "description_ar": "مسار يدرّبك على التشخيص من العرض إلى الدليل ثم التحقق والإصلاح والتراجع.",
+      "estimated_hours": 10,
+      "modules": [
+        {
+          "entity_id": "concept-network-stack",
+          "objective_ar": "استخدام نموذج طبقات الشبكة.",
+          "optional": false
+        },
+        {
+          "entity_id": "troubleshoot-systemd-service",
+          "objective_ar": "تشخيص خدمة متوقفة.",
+          "optional": false
+        },
+        {
+          "entity_id": "cmd-journalctl",
+          "objective_ar": "جمع الدليل من السجلات.",
+          "optional": false
+        },
+        {
+          "entity_id": "cmd-ss",
+          "objective_ar": "إثبات حالة المنافذ.",
+          "optional": false
+        },
+        {
+          "entity_id": "find-and-clean-large-files",
+          "objective_ar": "تشخيص مشكلة مساحة.",
+          "optional": false
+        },
+        {
+          "entity_id": "concept-ssh",
+          "objective_ar": "فهم مراحل اتصال SSH.",
+          "optional": false
+        },
+        {
+          "entity_id": "troubleshoot-ssh-connection",
+          "objective_ar": "تحديد مرحلة فشل SSH.",
+          "optional": false
+        },
+        {
+          "entity_id": "concept-selinux",
+          "objective_ar": "تمييز رفض SELinux.",
+          "optional": false
+        },
+        {
+          "entity_id": "diagnose-selinux-denial",
+          "objective_ar": "تحليل AVC وإصلاح السياق.",
+          "optional": true
+        }
+      ],
+      "outcomes_ar": [
+        "اتباع تسلسل تشخيص قابل للتكرار.",
+        "جمع دليل قبل تغيير النظام.",
+        "التحقق من الحل ووضع خطة تراجع."
+      ]
+    },
+    {
+      "id": "troubleshoot-ssh-connection",
+      "entity_type": "troubleshooting",
+      "content_level": "troubleshooting",
+      "title_ar": "تشخيص تعذر الاتصال عبر SSH",
+      "goal_ar": "تحديد هل فشل SSH سببه الشبكة أو المنفذ أو الخدمة أو المصادقة.",
+      "summary_ar": "مسار تشخيص من الوصول الشبكي إلى منفذ SSH ثم خدمة sshd وسجل المصادقة.",
+      "category": "ssh",
+      "difficulty": "intermediate",
+      "estimated_minutes": 18,
+      "keywords_ar": [
+        "ssh لا يعمل",
+        "لا استطيع الدخول",
+        "connection refused",
+        "timeout",
+        "sshd"
+      ],
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "risk": "medium",
+      "prerequisites_ar": [
+        "عنوان الخادم",
+        "اسم المستخدم",
+        "وصول بديل إلى الخادم قبل تعديل sshd"
+      ],
+      "variables": [
+        {
+          "name": "HOST",
+          "label_ar": "عنوان الخادم",
+          "example": "192.168.1.10",
+          "required": true
+        },
+        {
+          "name": "USER",
+          "label_ar": "اسم المستخدم",
+          "example": "admin",
+          "required": true
+        },
+        {
+          "name": "PORT",
+          "label_ar": "منفذ SSH",
+          "example": "22",
+          "required": true
+        }
+      ],
+      "steps": [
+        {
+          "id": "ping-host",
+          "title_ar": "اختبار الوصول الشبكي",
+          "command": "ping -c 4 <HOST>",
+          "explanation_ar": "فحص أولي للوصول، مع العلم أن ICMP قد يكون محجوباً.",
+          "requires_sudo": false,
+          "risk": "low",
+          "optional": true,
+          "expected_result_ar": "ردود أو مؤشر أولي على المسار.",
+          "notes_ar": ""
+        },
+        {
+          "id": "test-port",
+          "title_ar": "اختبار منفذ SSH",
+          "command": "nc -vz <HOST> <PORT>",
+          "explanation_ar": "يتحقق من إمكانية الوصول إلى المنفذ من جهاز العميل.",
+          "requires_sudo": false,
+          "risk": "low",
+          "optional": false,
+          "expected_result_ar": "succeeded أو connected.",
+          "notes_ar": ""
+        },
+        {
+          "id": "verbose-client",
+          "title_ar": "تشغيل العميل بوضع تفصيلي",
+          "command": "ssh -vvv -p <PORT> <USER>@<HOST>",
+          "explanation_ar": "يعرض مرحلة الفشل: اتصال أو تبادل مفاتيح أو مصادقة.",
+          "requires_sudo": false,
+          "risk": "low",
+          "optional": false,
+          "expected_result_ar": "تفاصيل المرحلة التي توقف عندها الاتصال.",
+          "notes_ar": ""
+        },
+        {
+          "id": "check-service",
+          "title_ar": "فحص خدمة sshd",
+          "command": "sudo systemctl status sshd",
+          "explanation_ar": "يتأكد أن خدمة الخادم تعمل.",
+          "requires_sudo": true,
+          "risk": "low",
+          "optional": false,
+          "expected_result_ar": "active (running).",
+          "notes_ar": ""
+        },
+        {
+          "id": "check-listen",
+          "title_ar": "فحص منفذ الاستماع",
+          "command": "sudo ss -tlnp | grep sshd",
+          "explanation_ar": "يعرض العنوان والمنفذ اللذين تستمع عليهما الخدمة.",
+          "requires_sudo": true,
+          "risk": "low",
+          "optional": false,
+          "expected_result_ar": "sshd في حالة LISTEN.",
+          "notes_ar": ""
+        },
+        {
+          "id": "check-logs",
+          "title_ar": "قراءة سجل sshd",
+          "command": "sudo journalctl -u sshd -b --no-pager",
+          "explanation_ar": "يعرض أخطاء الإعداد والمصادقة.",
+          "requires_sudo": true,
+          "risk": "low",
+          "optional": false,
+          "expected_result_ar": "رسائل تشخيصية مرتبطة بالمحاولة.",
+          "notes_ar": ""
+        }
+      ],
+      "verification": [
+        {
+          "title_ar": "اتصال فعلي",
+          "command": "ssh -p <PORT> <USER>@<HOST>",
+          "expected_result_ar": "فتح جلسة طرفية.",
+          "requires_sudo": false
+        }
+      ],
+      "rollback_ar": [
+        "احتفظ بجلسة SSH مفتوحة ونسخة من sshd_config قبل أي تعديل."
+      ],
+      "common_errors": [
+        {
+          "symptom_ar": "Connection refused",
+          "likely_causes_ar": [
+            "sshd متوقف",
+            "الخدمة تستمع على منفذ مختلف"
+          ],
+          "checks": [
+            {
+              "title_ar": "حالة الخدمة",
+              "command": "sudo systemctl status sshd",
+              "expected_result_ar": "حالة sshd.",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "منفذ الاستماع",
+              "command": "sudo ss -tlnp | grep sshd",
+              "expected_result_ar": "منفذ الخدمة.",
+              "requires_sudo": true
+            }
+          ],
+          "fixes_ar": [
+            "شغّل الخدمة",
+            "استخدم المنفذ الصحيح"
+          ]
+        },
+        {
+          "symptom_ar": "Connection timed out",
+          "likely_causes_ar": [
+            "مشكلة شبكة أو جدار ناري",
+            "عنوان غير صحيح"
+          ],
+          "checks": [
+            {
+              "title_ar": "المسار",
+              "command": "ip route",
+              "expected_result_ar": "جدول التوجيه.",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "firewalld",
+              "command": "sudo firewall-cmd --list-all",
+              "expected_result_ar": "السماح بخدمة SSH.",
+              "requires_sudo": true
+            }
+          ],
+          "fixes_ar": [
+            "صحح المسار",
+            "اسمح بخدمة SSH في المنطقة الصحيحة"
+          ]
+        }
+      ],
+      "files": [
+        "/etc/ssh/sshd_config",
+        "~/.ssh/authorized_keys"
+      ],
+      "ports": [
+        {
+          "port": 22,
+          "protocol": "tcp",
+          "purpose_ar": "SSH الافتراضي"
+        }
+      ],
+      "related_entities": [
+        "cmd-ssh",
+        "cmd-ss",
+        "cmd-systemctl",
+        "cmd-journalctl",
+        "concept-ssh",
+        "concept-network-stack",
+        "concept-firewalld"
+      ],
+      "tags_ar": [
+        "حل مشكلة",
+        "SSH"
+      ],
+      "safety_notes_ar": [
+        "اختبر sshd -t قبل إعادة تحميل الخدمة.",
+        "لا تغلق الجلسة الحالية قبل نجاح جلسة جديدة."
+      ],
+      "sources": [],
+      "status": "reviewed"
+    },
+    {
+      "id": "diagnose-selinux-denial",
+      "entity_type": "troubleshooting",
+      "content_level": "troubleshooting",
+      "title_ar": "تشخيص رفض SELinux",
+      "goal_ar": "إثبات أن SELinux سبب الرفض ثم إصلاح السياق أو السياسة المناسبة دون تعطيله.",
+      "summary_ar": "فحص الوضع وأحداث AVC والسياقات ثم تطبيق إصلاح موثق والتحقق من زوال الرفض.",
+      "category": "selinux",
+      "difficulty": "advanced",
+      "estimated_minutes": 20,
+      "keywords_ar": [
+        "selinux يمنع",
+        "permission denied",
+        "avc denied",
+        "restorecon",
+        "semanage"
+      ],
+      "supported_versions": [
+        "8",
+        "9",
+        "10"
+      ],
+      "risk": "high",
+      "prerequisites_ar": [
+        "صلاحية sudo",
+        "معرفة الخدمة أو المسار المتأثر"
+      ],
+      "variables": [
+        {
+          "name": "PATH",
+          "label_ar": "المسار المتأثر",
+          "example": "/var/www/html",
+          "required": false
+        },
+        {
+          "name": "SERVICE",
+          "label_ar": "اسم الخدمة",
+          "example": "httpd",
+          "required": false
+        }
+      ],
+      "steps": [
+        {
+          "id": "status",
+          "title_ar": "عرض حالة SELinux",
+          "command": "sestatus",
+          "explanation_ar": "يعرض الوضع والسياسة الحالية.",
+          "requires_sudo": false,
+          "risk": "low",
+          "optional": false,
+          "expected_result_ar": "Enforcing أو Permissive.",
+          "notes_ar": ""
+        },
+        {
+          "id": "avc",
+          "title_ar": "قراءة أحداث الرفض",
+          "command": "sudo ausearch -m AVC,USER_AVC -ts recent",
+          "explanation_ar": "يجمع أحداث AVC الحديثة من audit.",
+          "requires_sudo": true,
+          "risk": "low",
+          "optional": false,
+          "expected_result_ar": "أحداث مرتبطة بالمشكلة.",
+          "notes_ar": ""
+        },
+        {
+          "id": "context",
+          "title_ar": "فحص سياق المسار",
+          "command": "ls -Zd <PATH>",
+          "explanation_ar": "يعرض نوع وسياق SELinux للمسار.",
+          "requires_sudo": false,
+          "risk": "low",
+          "optional": false,
+          "expected_result_ar": "سياق المسار.",
+          "notes_ar": ""
+        },
+        {
+          "id": "restore",
+          "title_ar": "استعادة السياق الافتراضي",
+          "command": "sudo restorecon -Rv <PATH>",
+          "explanation_ar": "يعيد السياق وفق قواعد السياسة.",
+          "requires_sudo": true,
+          "risk": "medium",
+          "optional": true,
+          "expected_result_ar": "عرض التغييرات أو عدم وجود تغيير.",
+          "notes_ar": ""
+        },
+        {
+          "id": "booleans",
+          "title_ar": "فحص Booleans",
+          "command": "getsebool -a | grep -i <SERVICE>",
+          "explanation_ar": "يعرض خيارات السياسة المرتبطة بالخدمة.",
+          "requires_sudo": false,
+          "risk": "low",
+          "optional": true,
+          "expected_result_ar": "Booleans محتملة.",
+          "notes_ar": ""
+        }
+      ],
+      "verification": [
+        {
+          "title_ar": "إعادة الاختبار",
+          "command": "<RETRY_ORIGINAL_ACTION>",
+          "expected_result_ar": "نجاح العملية.",
+          "requires_sudo": false
+        },
+        {
+          "title_ar": "فحص AVC الجديد",
+          "command": "sudo ausearch -m AVC -ts recent",
+          "expected_result_ar": "عدم ظهور رفض جديد متعلق بالمشكلة.",
+          "requires_sudo": true
+        }
+      ],
+      "rollback_ar": [
+        "أعد أي Boolean إلى قيمته السابقة.",
+        "استخدم restorecon لاستعادة السياق الافتراضي."
+      ],
+      "common_errors": [
+        {
+          "symptom_ar": "المشكلة تختفي عند setenforce 0",
+          "likely_causes_ar": [
+            "سياق خاطئ",
+            "Boolean غير مفعّل",
+            "مسار أو منفذ غير معتاد"
+          ],
+          "checks": [
+            {
+              "title_ar": "السياق",
+              "command": "ls -Zd <PATH>",
+              "expected_result_ar": "سياق المسار.",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "AVC",
+              "command": "sudo ausearch -m AVC -ts recent",
+              "expected_result_ar": "تفاصيل الرفض.",
+              "requires_sudo": true
+            }
+          ],
+          "fixes_ar": [
+            "استخدم restorecon أو semanage fcontext",
+            "فعّل Boolean موثق",
+            "لا تعطل SELinux كحل دائم"
+          ]
+        }
+      ],
+      "files": [
+        "/etc/selinux/",
+        "/var/log/audit/audit.log"
+      ],
+      "ports": [],
+      "related_entities": [
+        "concept-selinux",
+        "cmd-restorecon",
+        "cmd-journalctl",
+        "install-nginx-web-server"
+      ],
+      "tags_ar": [
+        "حل مشكلة",
+        "SELinux"
+      ],
+      "safety_notes_ar": [
+        "لا تستخدم setenforce 0 كحل دائم.",
+        "لا تنشئ سياسة مخصصة قبل فهم سبب الرفض."
+      ],
+      "sources": [],
+      "status": "reviewed"
+    }
+  ]
+}
