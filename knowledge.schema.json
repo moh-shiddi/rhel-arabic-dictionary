@@ -1,19 +1,20 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "RHEL Arabic Knowledge Base",
+  "$id": "https://example.local/rhel-knowledge-v3.schema.json",
+  "title": "RHEL Arabic Knowledge Engine V3",
   "type": "object",
   "required": [
     "schema_version",
     "project",
     "language",
-    "baseline",
     "supported_versions",
+    "entity_types",
     "categories",
-    "tasks"
+    "entities"
   ],
   "properties": {
     "schema_version": {
-      "const": "2.0.0"
+      "const": "3.0.0"
     },
     "project": {
       "type": "string"
@@ -32,9 +33,13 @@
           "9",
           "10"
         ]
-      },
-      "minItems": 1,
-      "uniqueItems": true
+      }
+    },
+    "entity_types": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
     },
     "categories": {
       "type": "object",
@@ -42,145 +47,27 @@
         "type": "string"
       }
     },
-    "tasks": {
+    "entities": {
       "type": "array",
+      "minItems": 1,
       "items": {
-        "$ref": "#/$defs/task"
-      },
-      "minItems": 1
+        "$ref": "#/$defs/entity"
+      }
     }
   },
   "$defs": {
-    "step": {
-      "type": "object",
-      "required": [
-        "id",
-        "title_ar",
-        "command",
-        "explanation_ar",
-        "requires_sudo",
-        "risk",
-        "optional"
-      ],
-      "properties": {
-        "id": {
-          "type": "string",
-          "pattern": "^[a-z0-9][a-z0-9-]*$"
-        },
-        "title_ar": {
-          "type": "string"
-        },
-        "command": {
-          "type": "string"
-        },
-        "explanation_ar": {
-          "type": "string"
-        },
-        "requires_sudo": {
-          "type": "boolean"
-        },
-        "risk": {
-          "enum": [
-            "low",
-            "medium",
-            "high",
-            "critical"
-          ]
-        },
-        "optional": {
-          "type": "boolean"
-        },
-        "expected_result_ar": {
-          "type": "string"
-        },
-        "notes_ar": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
-    },
-    "check": {
-      "type": "object",
-      "required": [
-        "title_ar",
-        "command",
-        "expected_result_ar"
-      ],
-      "properties": {
-        "title_ar": {
-          "type": "string"
-        },
-        "command": {
-          "type": "string"
-        },
-        "expected_result_ar": {
-          "type": "string"
-        },
-        "requires_sudo": {
-          "type": "boolean"
-        }
-      },
-      "additionalProperties": false
-    },
-    "error": {
-      "type": "object",
-      "required": [
-        "symptom_ar",
-        "likely_causes_ar",
-        "checks",
-        "fixes_ar"
-      ],
-      "properties": {
-        "symptom_ar": {
-          "type": "string"
-        },
-        "likely_causes_ar": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "checks": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/check"
-          }
-        },
-        "fixes_ar": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "task": {
+    "common": {
       "type": "object",
       "required": [
         "id",
         "entity_type",
-        "content_level",
         "title_ar",
-        "goal_ar",
         "summary_ar",
         "category",
-        "difficulty",
-        "estimated_minutes",
         "keywords_ar",
+        "difficulty",
         "supported_versions",
-        "risk",
-        "prerequisites_ar",
-        "variables",
-        "steps",
-        "verification",
-        "rollback_ar",
-        "common_errors",
-        "files",
-        "ports",
-        "related_tasks",
-        "safety_notes_ar",
-        "sources",
+        "related_entities",
         "status"
       ],
       "properties": {
@@ -189,26 +76,30 @@
           "pattern": "^[a-z0-9][a-z0-9-]*$"
         },
         "entity_type": {
-          "const": "task"
-        },
-        "content_level": {
           "enum": [
-            "legacy",
-            "workflow",
-            "troubleshooting"
+            "task",
+            "command",
+            "concept",
+            "troubleshooting",
+            "learning_path"
           ]
         },
         "title_ar": {
-          "type": "string"
-        },
-        "goal_ar": {
-          "type": "string"
+          "type": "string",
+          "minLength": 2
         },
         "summary_ar": {
-          "type": "string"
+          "type": "string",
+          "minLength": 3
         },
         "category": {
           "type": "string"
+        },
+        "keywords_ar": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "difficulty": {
           "enum": [
@@ -216,18 +107,6 @@
             "intermediate",
             "advanced"
           ]
-        },
-        "estimated_minutes": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 480
-        },
-        "keywords_ar": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1
         },
         "supported_versions": {
           "type": "array",
@@ -237,82 +116,18 @@
               "9",
               "10"
             ]
-          },
-          "minItems": 1
+          }
         },
-        "risk": {
-          "enum": [
-            "low",
-            "medium",
-            "high",
-            "critical"
-          ]
-        },
-        "prerequisites_ar": {
+        "related_entities": {
           "type": "array",
           "items": {
             "type": "string"
           }
         },
-        "variables": {
-          "type": "array",
-          "items": {
-            "type": "object"
-          }
-        },
-        "steps": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/step"
-          },
-          "minItems": 1
-        },
-        "verification": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/check"
-          }
-        },
-        "rollback_ar": {
+        "tags_ar": {
           "type": "array",
           "items": {
             "type": "string"
-          }
-        },
-        "common_errors": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/error"
-          }
-        },
-        "files": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "ports": {
-          "type": "array",
-          "items": {
-            "type": "object"
-          }
-        },
-        "related_tasks": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "safety_notes_ar": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "sources": {
-          "type": "array",
-          "items": {
-            "type": "object"
           }
         },
         "status": {
@@ -322,9 +137,88 @@
             "verified"
           ]
         }
-      },
-      "additionalProperties": false
+      }
+    },
+    "entity": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common"
+        },
+        {
+          "if": {
+            "properties": {
+              "entity_type": {
+                "const": "command"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "command_name",
+              "purpose_ar",
+              "syntax",
+              "options",
+              "examples",
+              "risk"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "entity_type": {
+                "const": "concept"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "definition_ar",
+              "why_it_matters_ar",
+              "key_points_ar"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "entity_type": {
+                "const": "learning_path"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "description_ar",
+              "estimated_hours",
+              "modules",
+              "outcomes_ar"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "entity_type": {
+                "enum": [
+                  "task",
+                  "troubleshooting"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "goal_ar",
+              "estimated_minutes",
+              "risk",
+              "steps",
+              "verification",
+              "common_errors"
+            ]
+          }
+        }
+      ]
     }
-  },
-  "additionalProperties": false
+  }
 }
