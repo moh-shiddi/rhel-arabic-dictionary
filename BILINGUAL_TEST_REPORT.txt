@@ -1,0 +1,8 @@
+BILINGUAL ENGLISH INTERFACE TEST REPORT
+=======================================
+English entities: 215
+English intents tested: 9
+English diagnostics tested: 4
+Failures: 0
+
+All English interface data and engine tests passed.
