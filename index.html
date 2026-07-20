@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="محرك معرفة عربي لمهام وأوامر ومفاهيم Red Hat Enterprise Linux">
+  <meta name="description" content="محرك معرفة وتشخيص تفاعلي عربي لمهام وأوامر ومشكلات Red Hat Enterprise Linux">
   <meta name="theme-color" content="#0b6b50">
-  <title>محرك معرفة RHEL العربي</title>
+  <title>محرك معرفة RHEL العربي | Linux Doctor</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -22,6 +22,11 @@
       </a>
 
       <div class="topbar__actions">
+        <button id="doctorShortcut" class="toolbar-button toolbar-button--doctor" type="button">
+          <span aria-hidden="true">⚕</span>
+          <span>Linux Doctor</span>
+          <b id="doctorCasesCount">0</b>
+        </button>
         <button id="favoritesShortcut" class="toolbar-button" type="button">
           <span aria-hidden="true">★</span>
           <span>المفضلة</span>
@@ -36,11 +41,11 @@
     <main>
       <section class="hero">
         <div class="hero__content">
-          <span class="hero__eyebrow">المرحلة الثالثة — Intent Engine</span>
-          <h1>اكتب بطريقتك، وسيفهم النظام ما تريد</h1>
+          <span class="hero__eyebrow">المرحلة الرابعة — Linux Doctor</span>
+          <h1>ابحث عن المعرفة أو شخّص المشكلة خطوة بخطوة</h1>
           <p>
-            اكتب باللهجة أو العربية الفصحى أو اسم الأمر. يحلل المحرك نيتك، يصحح الأخطاء التقنية،
-            يستخرج اسم الخدمة والمنفذ والحزمة، ثم يجهز المهمة المناسبة.
+            استخدم البحث الذكي للوصول إلى المعرفة، أو افتح Linux Doctor ليتابع معك الفحوصات
+            ويغيّر المسار حسب النتائج التي تظهر على جهازك.
           </p>
 
           <div class="search-wrapper">
@@ -63,6 +68,14 @@
             <button type="button" data-query="مسار المبتدئ">مسار المبتدئ</button>
             <button type="button" data-query="SSH لا يعمل">SSH لا يعمل</button>
           </div>
+
+          <div class="hero__doctor-action">
+            <button id="startDoctorButton" type="button">
+              <span aria-hidden="true">⚕</span>
+              <span><strong>ابدأ Linux Doctor</strong><small>تشخيص تفاعلي لا ينفذ أي أمر</small></span>
+              <b aria-hidden="true">←</b>
+            </button>
+          </div>
         </div>
 
         <div class="hero__stats" aria-label="إحصائيات محرك المعرفة">
@@ -72,12 +85,36 @@
           <article><strong id="conceptsMetric">—</strong><span>مفهوماً</span></article>
           <article><strong id="pathsMetric">—</strong><span>مسارات تعلم</span></article>
           <article><strong id="intentsMetric">—</strong><span>نية بحث</span></article>
+          <article><strong id="doctorMetric">—</strong><span>مسارات تشخيص</span></article>
         </div>
       </section>
 
 
       <section id="intentPanel" class="intent-panel" aria-live="polite" hidden>
         <div id="intentPanelContent"></div>
+      </section>
+
+      <section class="doctor-launch" aria-labelledby="doctorLaunchTitle">
+        <div class="doctor-launch__content">
+          <span class="eyebrow">Linux Doctor</span>
+          <h2 id="doctorLaunchTitle">لا تعرف من أين تبدأ التشخيص؟</h2>
+          <p>اختر العَرَض، نفّذ فحوصات القراءة، ثم أخبر الطبيب بما ظهر لديك. سيقودك إلى السبب الأقرب والخطوة التالية.</p>
+          <div class="doctor-launch__features">
+            <span>✓ تفرعات حسب النتيجة</span>
+            <span>✓ أوامر مجهزة بالمتغيرات</span>
+            <span>✓ تقرير تشخيص قابل للتنزيل</span>
+            <span>✓ يعمل محلياً دون API</span>
+          </div>
+          <button type="button" data-doctor-launch>فتح الطبيب التفاعلي</button>
+        </div>
+        <div class="doctor-launch__visual">
+          <div class="doctor-orbit doctor-orbit--one"></div>
+          <div class="doctor-orbit doctor-orbit--two"></div>
+          <div class="doctor-launch__mark">⚕</div>
+          <strong><span id="doctorCasesCountInline">9</span> حالات رئيسية</strong>
+          <small>خدمة، SSH، قرص، شبكة، DNF، أداء، صلاحيات، منافذ، SELinux</small>
+        </div>
+        <div id="doctorLaunchExamples" class="doctor-launch__examples"></div>
       </section>
 
       <section class="type-explorer" aria-labelledby="explorerTitle">
@@ -172,6 +209,22 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <dialog id="doctorDialog" class="doctor-dialog">
+    <div class="doctor-dialog__topbar">
+      <div class="doctor-dialog__identity">
+        <span aria-hidden="true">⚕</span>
+        <div><small>RHEL Interactive Diagnostics</small><strong id="doctorDialogTitle">Linux Doctor</strong></div>
+      </div>
+      <div class="doctor-dialog__actions">
+        <button id="doctorHomeButton" type="button" hidden>الحالات</button>
+        <button id="doctorBackButton" type="button" hidden>رجوع</button>
+        <button id="doctorResetButton" type="button" hidden>إعادة</button>
+        <button id="doctorCloseButton" class="doctor-dialog__close" type="button" aria-label="إغلاق">×</button>
+      </div>
+    </div>
+    <div id="doctorContent" class="doctor-dialog__content"></div>
+  </dialog>
+
   <dialog id="entityDialog" class="entity-dialog">
     <div class="dialog-topbar">
       <button id="closeDialogButton" class="dialog-close" type="button" aria-label="إغلاق">×</button>
@@ -199,6 +252,7 @@
   </template>
 
   <script src="intent-engine.js"></script>
+  <script src="doctor-engine.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

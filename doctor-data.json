@@ -1,0 +1,3910 @@
+{
+  "schema_version": "1.0.0",
+  "project": "Linux Doctor for RHEL Arabic Knowledge Engine",
+  "language": "ar",
+  "disclaimer_ar": "الأداة ترشد إلى فحوصات وأوامر ولا تنفذ أي أمر على جهازك. راجع النتائج قبل تطبيق أي تغيير على بيئة إنتاج.",
+  "categories": {
+    "services": "الخدمات وSystemd",
+    "ssh": "SSH والوصول البعيد",
+    "storage": "الأقراص والتخزين",
+    "packages": "الحزم والبرامج",
+    "network": "الشبكات والاتصال",
+    "processes": "الأداء والموارد",
+    "permissions": "الصلاحيات والملكية",
+    "firewall": "الخدمات والمنافذ",
+    "selinux": "SELinux"
+  },
+  "flows": [
+    {
+      "id": "service-failed",
+      "title_ar": "خدمة لا تعمل أو تظهر Failed",
+      "summary_ar": "تشخيص Systemd والسجل والتعارضات والصلاحيات خطوة بخطوة.",
+      "icon": "⚙",
+      "category": "services",
+      "estimated_minutes": 12,
+      "difficulty": "intermediate",
+      "keywords_ar": [
+        "الخدمة لا تعمل",
+        "سيرفس failed",
+        "systemctl failed",
+        "service stopped"
+      ],
+      "variables": [
+        {
+          "name": "SERVICE",
+          "label_ar": "اسم الخدمة",
+          "example": "nginx",
+          "required": true
+        },
+        {
+          "name": "PATH",
+          "label_ar": "المسار المتأثر إن ظهر",
+          "example": "/srv/app",
+          "required": false
+        },
+        {
+          "name": "OTHER_SERVICE",
+          "label_ar": "الخدمة المتعارضة",
+          "example": "httpd",
+          "required": false
+        },
+        {
+          "name": "DEPENDENCY",
+          "label_ar": "الوحدة الفاشلة التابعة",
+          "example": "network-online.target",
+          "required": false
+        }
+      ],
+      "start_node": "service-status",
+      "max_steps": 6,
+      "nodes": {
+        "service-status": {
+          "id": "service-status",
+          "type": "check",
+          "title_ar": "فحص حالة الخدمة",
+          "text_ar": "ابدأ بعرض حالة الخدمة ورسالتها الأخيرة.",
+          "command": "systemctl status <SERVICE> --no-pager -l",
+          "explanation_ar": "يكشف الحالة الحالية، رمز الخروج، وآخر رسائل systemd.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "حالة الخدمة وسبب أولي للمشكلة.",
+          "choices": [
+            {
+              "id": "active",
+              "label_ar": "الخدمة Active لكن المشكلة مستمرة",
+              "next": "service-active",
+              "tone": "positive"
+            },
+            {
+              "id": "failed",
+              "label_ar": "الحالة Failed",
+              "next": "service-logs",
+              "tone": "danger"
+            },
+            {
+              "id": "inactive",
+              "label_ar": "الحالة Inactive أو متوقفة",
+              "next": "service-start",
+              "tone": "warning"
+            },
+            {
+              "id": "not-found",
+              "label_ar": "تظهر Unit not found",
+              "next": "service-not-found",
+              "tone": "warning"
+            }
+          ]
+        },
+        "service-start": {
+          "id": "service-start",
+          "type": "check",
+          "title_ar": "محاولة تشغيل الخدمة",
+          "text_ar": "جرّب تشغيل الخدمة مرة واحدة ثم اختر النتيجة.",
+          "command": "sudo systemctl start <SERVICE>",
+          "explanation_ar": "تشغيل الخدمة يساعد في إعادة إنتاج الخطأ وتسجيله.",
+          "risk": "high",
+          "requires_sudo": true,
+          "expected_result_ar": "عودة الأمر دون خطأ أو ظهور رسالة مفيدة.",
+          "choices": [
+            {
+              "id": "started",
+              "label_ar": "اشتغلت الخدمة بنجاح",
+              "next": "service-fixed",
+              "tone": "positive"
+            },
+            {
+              "id": "failed",
+              "label_ar": "فشل التشغيل",
+              "next": "service-logs",
+              "tone": "danger"
+            },
+            {
+              "id": "denied",
+              "label_ar": "لا أملك صلاحية",
+              "next": "service-sudo",
+              "tone": "warning"
+            }
+          ]
+        },
+        "service-logs": {
+          "id": "service-logs",
+          "type": "check",
+          "title_ar": "قراءة سجل الخدمة",
+          "text_ar": "ابحث عن أول خطأ واضح في سجل الإقلاع الحالي.",
+          "command": "journalctl -u <SERVICE> -b --no-pager -n 100",
+          "explanation_ar": "journalctl هو المصدر الأساسي لتشخيص خدمات systemd.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "رسالة خطأ قابلة للتفسير.",
+          "choices": [
+            {
+              "id": "config",
+              "label_ar": "الرسالة تشير إلى خطأ إعداد أو Syntax",
+              "next": "service-config",
+              "tone": "warning"
+            },
+            {
+              "id": "port",
+              "label_ar": "الرسالة تشير إلى Address already in use أو منفذ مستخدم",
+              "next": "service-port",
+              "tone": "warning"
+            },
+            {
+              "id": "permission",
+              "label_ar": "الرسالة تشير إلى Permission denied",
+              "next": "service-selinux",
+              "tone": "warning"
+            },
+            {
+              "id": "dependency",
+              "label_ar": "الرسالة تشير إلى Dependency failed",
+              "next": "service-dependency",
+              "tone": "warning"
+            },
+            {
+              "id": "unclear",
+              "label_ar": "لا أفهم الرسالة أو لا يوجد خطأ واضح",
+              "next": "service-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "service-config": {
+          "id": "service-config",
+          "type": "check",
+          "title_ar": "فحص ملف الوحدة والإعداد",
+          "text_ar": "اعرض ملف الوحدة الفعلي وأي Overrides مطبقة.",
+          "command": "systemctl cat <SERVICE>",
+          "explanation_ar": "يكشف ExecStart والاعتماديات وملفات override.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "مسار الأمر وملفات الوحدة المستخدمة.",
+          "choices": [
+            {
+              "id": "fixed",
+              "label_ar": "صححت الإعداد وأريد إعادة التشغيل",
+              "next": "service-restart",
+              "tone": "positive"
+            },
+            {
+              "id": "unknown",
+              "label_ar": "لا أعرف الملف الذي يجب تعديله",
+              "next": "service-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "service-port": {
+          "id": "service-port",
+          "type": "check",
+          "title_ar": "فحص تعارض المنافذ",
+          "text_ar": "اعرض الخدمات التي تستمع على المنافذ.",
+          "command": "sudo ss -tulpn",
+          "explanation_ar": "قد تفشل خدمة الشبكة عندما يكون المنفذ مستخدماً.",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "قائمة المنافذ والعمليات المستمعة.",
+          "choices": [
+            {
+              "id": "conflict",
+              "label_ar": "وجدت عملية أخرى تستخدم المنفذ",
+              "next": "service-port-result",
+              "tone": "danger"
+            },
+            {
+              "id": "none",
+              "label_ar": "لا يوجد تعارض واضح",
+              "next": "service-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "service-selinux": {
+          "id": "service-selinux",
+          "type": "check",
+          "title_ar": "فحص أحداث SELinux",
+          "text_ar": "تحقق هل يوجد رفض AVC حديث مرتبط بالخدمة.",
+          "command": "sudo ausearch -m AVC,USER_AVC -ts recent",
+          "explanation_ar": "Permission denied لا يعني دائماً صلاحيات Unix؛ قد يكون SELinux.",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "أحداث AVC أو نتيجة فارغة.",
+          "choices": [
+            {
+              "id": "avc",
+              "label_ar": "نعم، يوجد AVC مرتبط",
+              "next": "service-selinux-result",
+              "tone": "danger"
+            },
+            {
+              "id": "none",
+              "label_ar": "لا يوجد AVC مرتبط",
+              "next": "service-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "service-dependency": {
+          "id": "service-dependency",
+          "type": "check",
+          "title_ar": "فحص الوحدات الفاشلة",
+          "text_ar": "اعرض جميع الوحدات الفاشلة لمعرفة الاعتماد الذي سبق الخدمة.",
+          "command": "systemctl --failed",
+          "explanation_ar": "الخدمة قد تكون سليمة لكن وحدة مطلوبة قبلها فشلت.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "قائمة الوحدات الفاشلة.",
+          "choices": [
+            {
+              "id": "found",
+              "label_ar": "وجدت وحدة مرتبطة فاشلة",
+              "next": "service-dependency-result",
+              "tone": "warning"
+            },
+            {
+              "id": "none",
+              "label_ar": "لا توجد وحدة مرتبطة واضحة",
+              "next": "service-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "service-restart": {
+          "id": "service-restart",
+          "type": "check",
+          "title_ar": "إعادة التشغيل بعد التصحيح",
+          "text_ar": "أعد تشغيل الخدمة ثم تحقق من حالتها.",
+          "command": "sudo systemctl restart <SERVICE>",
+          "explanation_ar": "تطبيق الإعداد الجديد وإعادة التحقق.",
+          "risk": "high",
+          "requires_sudo": true,
+          "expected_result_ar": "الخدمة active أو رسالة خطأ جديدة.",
+          "choices": [
+            {
+              "id": "success",
+              "label_ar": "أصبحت Active",
+              "next": "service-fixed",
+              "tone": "positive"
+            },
+            {
+              "id": "failed",
+              "label_ar": "ما زالت تفشل",
+              "next": "service-deep",
+              "tone": "danger"
+            }
+          ]
+        },
+        "service-active": {
+          "id": "service-active",
+          "type": "result",
+          "diagnosis_ar": "الخدمة تعمل؛ العطل غالباً خارج systemd",
+          "summary_ar": "حالة Active تعني أن العملية الأساسية تعمل، لكن قد توجد مشكلة منفذ أو إعداد تطبيق أو جدار ناري.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "الخدمة تستمع على عنوان أو منفذ غير متوقع",
+            "الطلب يصل إلى جدار ناري أو Proxy مختلف",
+            "التطبيق يعمل لكنه يرد بخطأ داخلي"
+          ],
+          "actions": [
+            {
+              "title_ar": "افحص المنافذ المستمعة",
+              "command": "sudo ss -tulpn",
+              "explanation_ar": "تأكد من المنفذ والعنوان الذي تستمع عليه الخدمة.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "تابع السجل مباشرة",
+              "command": "journalctl -fu <SERVICE>",
+              "explanation_ar": "نفذ الطلب مرة أخرى وراقب الرسائل.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [
+            {
+              "title_ar": "تأكيد الحالة",
+              "command": "systemctl is-active <SERVICE>",
+              "expected_result_ar": "active",
+              "requires_sudo": false
+            }
+          ],
+          "related_entity_ids": [
+            "troubleshoot-systemd-service"
+          ],
+          "safety_notes_ar": []
+        },
+        "service-not-found": {
+          "id": "service-not-found",
+          "type": "result",
+          "diagnosis_ar": "اسم الوحدة غير صحيح أو الحزمة غير مثبتة",
+          "summary_ar": "systemd لم يجد وحدة بالاسم المدخل.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "استخدام اسم برنامج بدلاً من اسم الوحدة",
+            "الحزمة التي توفر الخدمة غير مثبتة",
+            "امتداد الوحدة أو الاسم مختلف"
+          ],
+          "actions": [
+            {
+              "title_ar": "ابحث عن اسم الوحدة",
+              "command": "systemctl list-unit-files | grep -i '<SERVICE>'",
+              "explanation_ar": "اعثر على الاسم الصحيح.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "ابحث عن الحزمة",
+              "command": "dnf search <SERVICE>",
+              "explanation_ar": "تحقق من توفر البرنامج.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "cmd-systemctl",
+            "install-package-dnf"
+          ],
+          "safety_notes_ar": []
+        },
+        "service-fixed": {
+          "id": "service-fixed",
+          "type": "result",
+          "diagnosis_ar": "تم تشغيل الخدمة بنجاح",
+          "summary_ar": "الخدمة عادت إلى الحالة النشطة. أكمل التحقق من الوظيفة الفعلية.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "توقف مؤقت أو حالة عالقة",
+            "تم تصحيح الإعداد قبل المحاولة"
+          ],
+          "actions": [
+            {
+              "title_ar": "فعّلها مع الإقلاع",
+              "command": "sudo systemctl enable <SERVICE>",
+              "explanation_ar": "اختياري إذا كان مطلوباً أن تبدأ تلقائياً.",
+              "risk": "medium",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [
+            {
+              "title_ar": "حالة الخدمة",
+              "command": "systemctl is-active <SERVICE>",
+              "expected_result_ar": "active",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "فحص الإقلاع",
+              "command": "systemctl is-enabled <SERVICE>",
+              "expected_result_ar": "enabled أو القيمة المطلوبة",
+              "requires_sudo": false
+            }
+          ],
+          "related_entity_ids": [
+            "troubleshoot-systemd-service"
+          ],
+          "safety_notes_ar": []
+        },
+        "service-sudo": {
+          "id": "service-sudo",
+          "type": "result",
+          "diagnosis_ar": "المشكلة صلاحية تنفيذ إدارية",
+          "summary_ar": "تشغيل وإيقاف خدمات النظام يحتاج عادةً إلى sudo أو صلاحيات Polkit مناسبة.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "الحساب ليس في wheel",
+            "لا توجد قاعدة sudo مناسبة"
+          ],
+          "actions": [
+            {
+              "title_ar": "اعرض صلاحيات sudo",
+              "command": "sudo -l",
+              "explanation_ar": "يعرض ما يسمح به sudo للحساب.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "create-user-with-admin-access"
+          ],
+          "safety_notes_ar": [
+            "لا تمنح صلاحيات إدارية واسعة دون حاجة."
+          ]
+        },
+        "service-port-result": {
+          "id": "service-port-result",
+          "type": "result",
+          "diagnosis_ar": "الخدمة لا تبدأ بسبب تعارض منفذ",
+          "summary_ar": "عملية أخرى تستمع على المنفذ الذي تحتاجه الخدمة.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "تشغيل خدمتين على المنفذ نفسه",
+            "نسخة قديمة من التطبيق ما زالت تعمل",
+            "إعداد listen غير صحيح"
+          ],
+          "actions": [
+            {
+              "title_ar": "حدد العملية",
+              "command": "sudo ss -tulpn",
+              "explanation_ar": "سجل PID واسم العملية.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "راجع الخدمة المتعارضة",
+              "command": "systemctl status <OTHER_SERVICE>",
+              "explanation_ar": "حدد هل يجب إيقافها أو تغيير منفذ إحدى الخدمتين.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-systemd-service"
+          ],
+          "safety_notes_ar": [
+            "لا تقتل العملية قبل معرفة الخدمة التابعة لها."
+          ]
+        },
+        "service-selinux-result": {
+          "id": "service-selinux-result",
+          "type": "result",
+          "diagnosis_ar": "SELinux يرفض عملية مطلوبة للخدمة",
+          "summary_ar": "يوجد حدث AVC مرتبط بالمشكلة؛ الحل الصحيح هو إصلاح السياق أو استخدام Boolean أو سياسة موثقة.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "سياق ملف خاطئ",
+            "منفذ غير مصنف للخدمة",
+            "Boolean مطلوب غير مفعّل"
+          ],
+          "actions": [
+            {
+              "title_ar": "اعرض تفاصيل الرفض",
+              "command": "sudo ausearch -m AVC,USER_AVC -ts recent",
+              "explanation_ar": "احتفظ بالرسالة الكاملة.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "استعد السياق الافتراضي",
+              "command": "sudo restorecon -Rv <PATH>",
+              "explanation_ar": "استخدمه عندما يكون المسار معروفاً.",
+              "risk": "medium",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "diagnose-selinux-denial",
+            "concept-selinux"
+          ],
+          "safety_notes_ar": [
+            "لا تعطل SELinux كحل دائم."
+          ]
+        },
+        "service-dependency-result": {
+          "id": "service-dependency-result",
+          "type": "result",
+          "diagnosis_ar": "فشل اعتماد مطلوب قبل الخدمة",
+          "summary_ar": "ابدأ بإصلاح الوحدة الفاشلة التي تعتمد عليها الخدمة، ثم أعد المحاولة.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "خدمة شبكة أو Mount مطلوب غير متاح",
+            "وحدة إعداد سابقة فشلت",
+            "ترتيب الإقلاع أو Requires غير صحيح"
+          ],
+          "actions": [
+            {
+              "title_ar": "افتح حالة الوحدة الفاشلة",
+              "command": "systemctl status <DEPENDENCY> --no-pager -l",
+              "explanation_ar": "شخّص الاعتماد أولاً.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "اعرض سجلها",
+              "command": "journalctl -u <DEPENDENCY> -b --no-pager",
+              "explanation_ar": "اقرأ سبب الفشل.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-systemd-service"
+          ],
+          "safety_notes_ar": []
+        },
+        "service-deep": {
+          "id": "service-deep",
+          "type": "result",
+          "diagnosis_ar": "تحتاج المشكلة إلى تشخيص أعمق من الرسالة الحالية",
+          "summary_ar": "اجمع الحالة والسجل وملف الوحدة ووقت حدوث العطل قبل تعديل النظام.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "خطأ تطبيق داخلي",
+            "اعتماد خارجي غير متاح",
+            "ملف إعداد أو متغير بيئة غير صحيح",
+            "حدود موارد أو صلاحيات"
+          ],
+          "actions": [
+            {
+              "title_ar": "حفظ الحالة",
+              "command": "systemctl status <SERVICE> --no-pager -l",
+              "explanation_ar": "انسخ الخرج كاملاً.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "حفظ السجل",
+              "command": "journalctl -u <SERVICE> -b --no-pager -n 200",
+              "explanation_ar": "ابحث عن أول خطأ زمني.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "عرض الوحدة",
+              "command": "systemctl cat <SERVICE>",
+              "explanation_ar": "راجع ExecStart وEnvironment.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-systemd-service"
+          ],
+          "safety_notes_ar": []
+        }
+      },
+      "related_entity_id": "troubleshoot-systemd-service"
+    },
+    {
+      "id": "ssh-connection",
+      "title_ar": "لا أستطيع الدخول عبر SSH",
+      "summary_ar": "يفصل المشكلة بين الشبكة والمنفذ وخدمة sshd والمصادقة.",
+      "icon": "⌁",
+      "category": "ssh",
+      "estimated_minutes": 15,
+      "difficulty": "intermediate",
+      "keywords_ar": [
+        "ssh لا يعمل",
+        "لا استطيع الدخول",
+        "connection refused",
+        "permission denied ssh"
+      ],
+      "variables": [
+        {
+          "name": "HOST",
+          "label_ar": "عنوان الخادم",
+          "example": "192.168.1.10",
+          "required": true
+        },
+        {
+          "name": "USER",
+          "label_ar": "اسم المستخدم",
+          "example": "admin",
+          "required": true
+        },
+        {
+          "name": "PORT",
+          "label_ar": "منفذ SSH",
+          "example": "22",
+          "required": true,
+          "default": "22"
+        }
+      ],
+      "start_node": "ssh-reach",
+      "max_steps": 6,
+      "nodes": {
+        "ssh-reach": {
+          "id": "ssh-reach",
+          "type": "question",
+          "title_ar": "هل يصل جهازك إلى عنوان الخادم؟",
+          "text_ar": "ابدأ باختبار الوصول الأساسي. إذا كان Ping محجوباً اختر «غير متأكد».",
+          "help_ar": "",
+          "choices": [
+            {
+              "id": "yes",
+              "label_ar": "نعم، يصل أو Ping يرد",
+              "next": "ssh-port",
+              "tone": "positive"
+            },
+            {
+              "id": "no",
+              "label_ar": "لا، لا يوجد وصول",
+              "next": "ssh-route",
+              "tone": "danger"
+            },
+            {
+              "id": "unknown",
+              "label_ar": "Ping محجوب أو غير متأكد",
+              "next": "ssh-port",
+              "tone": "normal"
+            }
+          ]
+        },
+        "ssh-route": {
+          "id": "ssh-route",
+          "type": "check",
+          "title_ar": "فحص المسار إلى الخادم",
+          "text_ar": "اعرض المسار الذي سيستخدمه النظام للوصول إلى العنوان.",
+          "command": "ip route get <HOST>",
+          "explanation_ar": "يفصل مشكلة التوجيه المحلية عن مشكلة SSH.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "واجهة وبوابة ومسار إلى العنوان.",
+          "choices": [
+            {
+              "id": "route",
+              "label_ar": "يوجد مسار منطقي",
+              "next": "ssh-port",
+              "tone": "positive"
+            },
+            {
+              "id": "no-route",
+              "label_ar": "تظهر Network is unreachable أو لا يوجد مسار",
+              "next": "ssh-network-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "ssh-port": {
+          "id": "ssh-port",
+          "type": "check",
+          "title_ar": "اختبار منفذ SSH",
+          "text_ar": "اختبر فتح اتصال TCP إلى منفذ SSH.",
+          "command": "nc -vz <HOST> <PORT>",
+          "explanation_ar": "الاختبار يحدد هل المشكلة قبل خدمة SSH أم داخل المصادقة.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "succeeded أو refused أو timed out.",
+          "choices": [
+            {
+              "id": "open",
+              "label_ar": "الاتصال نجح أو المنفذ Open",
+              "next": "ssh-verbose",
+              "tone": "positive"
+            },
+            {
+              "id": "refused",
+              "label_ar": "Connection refused",
+              "next": "ssh-refused",
+              "tone": "danger"
+            },
+            {
+              "id": "timeout",
+              "label_ar": "Timed out",
+              "next": "ssh-timeout",
+              "tone": "danger"
+            },
+            {
+              "id": "nc-missing",
+              "label_ar": "أمر nc غير موجود",
+              "next": "ssh-curl-port",
+              "tone": "normal"
+            }
+          ]
+        },
+        "ssh-curl-port": {
+          "id": "ssh-curl-port",
+          "type": "check",
+          "title_ar": "اختبار بديل للمنفذ",
+          "text_ar": "استخدم Bash لفتح اتصال TCP عندما لا يتوفر nc.",
+          "command": "timeout 5 bash -c \"</dev/tcp/<HOST>/<PORT>\"",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "عودة سريعة دون خطأ عند فتح المنفذ.",
+          "choices": [
+            {
+              "id": "open",
+              "label_ar": "نجح الاتصال",
+              "next": "ssh-verbose",
+              "tone": "positive"
+            },
+            {
+              "id": "failed",
+              "label_ar": "فشل أو انتهت المهلة",
+              "next": "ssh-timeout",
+              "tone": "danger"
+            }
+          ]
+        },
+        "ssh-verbose": {
+          "id": "ssh-verbose",
+          "type": "check",
+          "title_ar": "تشغيل SSH بوضع تفصيلي",
+          "text_ar": "شغّل العميل مع -vvv وحدد آخر مرحلة وصل إليها.",
+          "command": "ssh -vvv -p <PORT> <USER>@<HOST>",
+          "explanation_ar": "السطر الأخير قبل الفشل يحدد مرحلة المشكلة.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "تفاصيل الاتصال والمصادقة.",
+          "choices": [
+            {
+              "id": "success",
+              "label_ar": "تم الدخول بنجاح",
+              "next": "ssh-fixed",
+              "tone": "positive"
+            },
+            {
+              "id": "permission",
+              "label_ar": "Permission denied",
+              "next": "ssh-auth",
+              "tone": "danger"
+            },
+            {
+              "id": "hostkey",
+              "label_ar": "Host key verification failed",
+              "next": "ssh-hostkey",
+              "tone": "warning"
+            },
+            {
+              "id": "disconnect",
+              "label_ar": "يتم الاتصال ثم يغلق الخادم الجلسة",
+              "next": "ssh-server-logs",
+              "tone": "warning"
+            },
+            {
+              "id": "other",
+              "label_ar": "خطأ آخر غير واضح",
+              "next": "ssh-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "ssh-server-logs": {
+          "id": "ssh-server-logs",
+          "type": "check",
+          "title_ar": "قراءة سجل sshd من الخادم",
+          "text_ar": "من وحدة تحكم محلية أو جلسة بديلة اعرض سجل الخدمة.",
+          "command": "sudo journalctl -u sshd -b --no-pager -n 100",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "رسائل قبول أو رفض أو خطأ إعداد.",
+          "choices": [
+            {
+              "id": "config",
+              "label_ar": "خطأ في الإعداد أو المستخدم",
+              "next": "ssh-server-result",
+              "tone": "warning"
+            },
+            {
+              "id": "selinux",
+              "label_ar": "يوجد AVC أو Permission denied",
+              "next": "ssh-selinux-result",
+              "tone": "warning"
+            },
+            {
+              "id": "unclear",
+              "label_ar": "لا يوجد سبب واضح",
+              "next": "ssh-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "ssh-network-result": {
+          "id": "ssh-network-result",
+          "type": "result",
+          "diagnosis_ar": "لا يوجد مسار شبكي إلى الخادم",
+          "summary_ar": "المشكلة تقع قبل SSH؛ أصلح عنوان الشبكة أو المسار أو VPN أولاً.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "العنوان غير صحيح",
+            "VPN أو الشبكة المطلوبة غير متصلة",
+            "لا توجد بوابة أو Route مناسب"
+          ],
+          "actions": [
+            {
+              "title_ar": "اعرض الواجهات",
+              "command": "ip address show",
+              "explanation_ar": "تأكد من عنوان الواجهة.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "اعرض المسارات",
+              "command": "ip route show",
+              "explanation_ar": "تحقق من Default Route والمسارات الخاصة.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": []
+        },
+        "ssh-refused": {
+          "id": "ssh-refused",
+          "type": "result",
+          "diagnosis_ar": "الخادم يرد لكن لا توجد خدمة SSH على المنفذ",
+          "summary_ar": "Connection refused يعني أن الوصول الشبكي موجود، لكن المنفذ مغلق محلياً أو لا توجد عملية تستمع.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "خدمة sshd متوقفة",
+            "منفذ SSH مختلف",
+            "sshd يستمع على عنوان آخر"
+          ],
+          "actions": [
+            {
+              "title_ar": "حالة sshd",
+              "command": "sudo systemctl status sshd",
+              "explanation_ar": "نفذها من الخادم.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "منافذ sshd",
+              "command": "sudo ss -tlnp | grep sshd",
+              "explanation_ar": "اعرف المنفذ والعنوان.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-ssh-connection",
+            "legacy-svc-start"
+          ],
+          "safety_notes_ar": []
+        },
+        "ssh-timeout": {
+          "id": "ssh-timeout",
+          "type": "result",
+          "diagnosis_ar": "الاتصال إلى منفذ SSH ينتهي بمهلة",
+          "summary_ar": "غالباً توجد مشكلة جدار ناري أو مسار وسيط أو عنوان غير صحيح.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "firewalld لا يسمح بالمنفذ",
+            "Security Group أو Firewall خارجي",
+            "NAT أو Route غير صحيح"
+          ],
+          "actions": [
+            {
+              "title_ar": "قواعد الخادم",
+              "command": "sudo firewall-cmd --list-all",
+              "explanation_ar": "تحقق من ssh أو المنفذ.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "المسار",
+              "command": "traceroute <HOST>",
+              "explanation_ar": "حدد أين يتوقف المسار.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-ssh-connection",
+            "cmd-firewall-cmd"
+          ],
+          "safety_notes_ar": []
+        },
+        "ssh-auth": {
+          "id": "ssh-auth",
+          "type": "result",
+          "diagnosis_ar": "الاتصال يعمل لكن المصادقة مرفوضة",
+          "summary_ar": "وصل العميل إلى sshd، والمشكلة في اسم المستخدم أو كلمة المرور أو المفتاح أو سياسة الدخول.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "اسم مستخدم غير صحيح",
+            "المفتاح العام غير موجود أو صلاحياته خاطئة",
+            "PasswordAuthentication معطل",
+            "الحساب مقفل"
+          ],
+          "actions": [
+            {
+              "title_ar": "فحص الحساب",
+              "command": "id <USER>",
+              "explanation_ar": "تأكد أن الحساب موجود.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "صلاحيات SSH",
+              "command": "ls -ld ~/.ssh && ls -l ~/.ssh/authorized_keys",
+              "explanation_ar": "يجب أن تكون الصلاحيات مقيدة.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "سجل sshd",
+              "command": "sudo journalctl -u sshd -b --no-pager -n 100",
+              "explanation_ar": "يعرض سبب الرفض.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-ssh-connection",
+            "concept-ssh"
+          ],
+          "safety_notes_ar": [
+            "لا تخفّض أمان sshd لمجرد تجاوز المشكلة."
+          ]
+        },
+        "ssh-hostkey": {
+          "id": "ssh-hostkey",
+          "type": "result",
+          "diagnosis_ar": "مفتاح هوية الخادم تغيّر أو لا يطابق السجل",
+          "summary_ar": "تحقق أولاً أن التغيير متوقع قبل حذف المفتاح القديم.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "تمت إعادة تثبيت الخادم",
+            "العنوان يشير إلى جهاز مختلف",
+            "احتمال اعتراض اتصال"
+          ],
+          "actions": [
+            {
+              "title_ar": "اعرض المفتاح المسجل",
+              "command": "ssh-keygen -F <HOST>",
+              "explanation_ar": "راجع البصمة القديمة.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "إزالة السجل بعد التحقق",
+              "command": "ssh-keygen -R <HOST>",
+              "explanation_ar": "نفذه فقط بعد التأكد من هوية الخادم.",
+              "risk": "medium",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "cmd-ssh",
+            "concept-ssh"
+          ],
+          "safety_notes_ar": [
+            "لا تتجاهل تحذير Host Key قبل التحقق من البصمة."
+          ]
+        },
+        "ssh-server-result": {
+          "id": "ssh-server-result",
+          "type": "result",
+          "diagnosis_ar": "إعداد sshd أو الحساب يرفض الجلسة",
+          "summary_ar": "سجل الخادم أظهر سبباً متعلقاً بالإعداد أو المستخدم.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "AllowUsers أو DenyUsers",
+            "Shell غير صالح",
+            "إعداد Match",
+            "الحساب مقفل"
+          ],
+          "actions": [
+            {
+              "title_ar": "اختبار إعداد sshd",
+              "command": "sudo sshd -t",
+              "explanation_ar": "يجب ألا يظهر خطأ.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "عرض الإعداد الفعلي",
+              "command": "sudo sshd -T",
+              "explanation_ar": "يعرض القيم الفعلية.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-ssh-connection"
+          ],
+          "safety_notes_ar": [
+            "احتفظ بجلسة SSH مفتوحة قبل إعادة تحميل الإعداد."
+          ]
+        },
+        "ssh-selinux-result": {
+          "id": "ssh-selinux-result",
+          "type": "result",
+          "diagnosis_ar": "SELinux يمنع جزءاً من عملية الدخول",
+          "summary_ar": "عالج السياق أو سياسة الوصول دون تعطيل SELinux.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "سياق authorized_keys أو home غير صحيح",
+            "منفذ SSH غير قياسي غير مصنف",
+            "سياسة مخصصة"
+          ],
+          "actions": [
+            {
+              "title_ar": "استعادة سياق المنزل",
+              "command": "sudo restorecon -Rv /home/<USER>",
+              "explanation_ar": "يعيد السياقات الافتراضية.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "فحص AVC",
+              "command": "sudo ausearch -m AVC -ts recent",
+              "explanation_ar": "اعرض الرفض.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "diagnose-selinux-denial",
+            "troubleshoot-ssh-connection"
+          ],
+          "safety_notes_ar": []
+        },
+        "ssh-fixed": {
+          "id": "ssh-fixed",
+          "type": "result",
+          "diagnosis_ar": "اتصال SSH يعمل",
+          "summary_ar": "تم فتح جلسة بنجاح. يمكنك الآن مراجعة إعدادات الاستمرارية والأمان.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "المشكلة كانت مؤقتة أو تم استخدام القيم الصحيحة"
+          ],
+          "actions": [
+            {
+              "title_ar": "اختبار اتصال مختصر",
+              "command": "ssh -p <PORT> <USER>@<HOST> true",
+              "explanation_ar": "يجب أن يعود برمز نجاح.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "cmd-ssh"
+          ],
+          "safety_notes_ar": []
+        },
+        "ssh-deep": {
+          "id": "ssh-deep",
+          "type": "result",
+          "diagnosis_ar": "تحتاج المشكلة إلى مقارنة سجل العميل والخادم",
+          "summary_ar": "اجمع آخر أسطر ssh -vvv مع سجل sshd في الوقت نفسه.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "خوارزميات تشفير غير متوافقة",
+            "ProxyJump أو إعداد عميل",
+            "PAM أو سياسة حساب",
+            "انقطاع بعد المصادقة"
+          ],
+          "actions": [
+            {
+              "title_ar": "سجل العميل",
+              "command": "ssh -vvv -p <PORT> <USER>@<HOST>",
+              "explanation_ar": "احتفظ بآخر 30 سطراً.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "سجل الخادم",
+              "command": "sudo journalctl -fu sshd",
+              "explanation_ar": "راقب أثناء محاولة جديدة.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-ssh-connection"
+          ],
+          "safety_notes_ar": []
+        }
+      },
+      "related_entity_id": "troubleshoot-ssh-connection"
+    },
+    {
+      "id": "disk-full",
+      "title_ar": "القرص ممتلئ أو تظهر No space left",
+      "summary_ar": "يميز بين المساحة وInodes والملفات الكبيرة والملفات المحذوفة المفتوحة.",
+      "icon": "◫",
+      "category": "storage",
+      "estimated_minutes": 12,
+      "difficulty": "intermediate",
+      "keywords_ar": [
+        "الهارد ممتلئ",
+        "no space left",
+        "disk full",
+        "مساحة القرص"
+      ],
+      "variables": [
+        {
+          "name": "PATH",
+          "label_ar": "المسار أو نقطة الربط",
+          "example": "/var",
+          "required": true,
+          "default": "/var"
+        },
+        {
+          "name": "PID",
+          "label_ar": "PID للعملية إن ظهر",
+          "example": "1234",
+          "required": false
+        },
+        {
+          "name": "SERVICE",
+          "label_ar": "الخدمة المالكة للملف",
+          "example": "rsyslog",
+          "required": false
+        }
+      ],
+      "start_node": "disk-df",
+      "max_steps": 6,
+      "nodes": {
+        "disk-df": {
+          "id": "disk-df",
+          "type": "check",
+          "title_ar": "تحديد القسم الممتلئ",
+          "text_ar": "اعرض المساحة ونوع نظام الملفات.",
+          "command": "df -hT",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "نسبة الاستخدام لكل نقطة ربط.",
+          "choices": [
+            {
+              "id": "space",
+              "label_ar": "نسبة Use% مرتفعة",
+              "next": "disk-inodes",
+              "tone": "warning"
+            },
+            {
+              "id": "inode",
+              "label_ar": "المساحة طبيعية لكن النظام يقول No space left",
+              "next": "disk-inodes",
+              "tone": "warning"
+            },
+            {
+              "id": "normal",
+              "label_ar": "كل النسب طبيعية",
+              "next": "disk-not-full",
+              "tone": "normal"
+            }
+          ]
+        },
+        "disk-inodes": {
+          "id": "disk-inodes",
+          "type": "check",
+          "title_ar": "فحص عدد Inodes",
+          "text_ar": "قد تنفد inodes بسبب ملايين الملفات الصغيرة.",
+          "command": "df -ih",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "نسبة IUse% لكل نظام ملفات.",
+          "choices": [
+            {
+              "id": "full",
+              "label_ar": "IUse% مرتفعة جداً",
+              "next": "disk-inode-result",
+              "tone": "danger"
+            },
+            {
+              "id": "normal",
+              "label_ar": "Inodes طبيعية",
+              "next": "disk-du",
+              "tone": "positive"
+            }
+          ]
+        },
+        "disk-du": {
+          "id": "disk-du",
+          "type": "check",
+          "title_ar": "تحديد أكبر المجلدات",
+          "text_ar": "حلل مستوى واحداً داخل نقطة الربط أو المسار المتأثر.",
+          "command": "sudo du -xhd1 <PATH> | sort -h",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "قائمة المجلدات مرتبة حسب الحجم.",
+          "choices": [
+            {
+              "id": "large-dir",
+              "label_ar": "وجدت مجلداً كبيراً واضحاً",
+              "next": "disk-files",
+              "tone": "warning"
+            },
+            {
+              "id": "mismatch",
+              "label_ar": "مجموع du أصغر كثيراً من df",
+              "next": "disk-open-deleted",
+              "tone": "warning"
+            },
+            {
+              "id": "permission",
+              "label_ar": "ظهرت أخطاء Permission denied",
+              "next": "disk-sudo-result",
+              "tone": "normal"
+            }
+          ]
+        },
+        "disk-files": {
+          "id": "disk-files",
+          "type": "check",
+          "title_ar": "البحث عن الملفات الكبيرة",
+          "text_ar": "اعرض الملفات الأكبر من 500 ميجابايت دون حذفها.",
+          "command": "sudo find <PATH> -xdev -type f -size +500M -printf '%s %p\\n' | sort -n",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "قائمة ملفات كبيرة ومساراتها.",
+          "choices": [
+            {
+              "id": "logs",
+              "label_ar": "معظمها سجلات أو Journal",
+              "next": "disk-logs-result",
+              "tone": "warning"
+            },
+            {
+              "id": "data",
+              "label_ar": "ملفات بيانات أو نسخ احتياطية",
+              "next": "disk-data-result",
+              "tone": "warning"
+            },
+            {
+              "id": "none",
+              "label_ar": "لا توجد ملفات كبيرة كافية",
+              "next": "disk-open-deleted",
+              "tone": "normal"
+            }
+          ]
+        },
+        "disk-open-deleted": {
+          "id": "disk-open-deleted",
+          "type": "check",
+          "title_ar": "البحث عن ملفات محذوفة ما زالت مفتوحة",
+          "text_ar": "قد يحتفظ برنامج بملف محذوف ويستمر في استهلاك المساحة.",
+          "command": "sudo lsof +L1",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "عمليات وملفات deleted أو نتيجة فارغة.",
+          "choices": [
+            {
+              "id": "found",
+              "label_ar": "وجدت ملفات deleted كبيرة",
+              "next": "disk-deleted-result",
+              "tone": "danger"
+            },
+            {
+              "id": "none",
+              "label_ar": "لا توجد ملفات محذوفة مفتوحة",
+              "next": "disk-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "disk-not-full": {
+          "id": "disk-not-full",
+          "type": "result",
+          "diagnosis_ar": "المشكلة ليست امتلاء مساحة التخزين",
+          "summary_ar": "نسب المساحة طبيعية؛ راجع Quota أو نظام ملفات Read-only أو مساحة تطبيق داخل Container.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "Quota مستخدم",
+            "Filesystem read-only",
+            "تطبيق يستخدم مساحة مؤقتة أو Volume مختلف"
+          ],
+          "actions": [
+            {
+              "title_ar": "عرض نقاط الربط",
+              "command": "findmnt",
+              "explanation_ar": "تأكد من نقطة الربط الفعلية.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "فحص رسائل النواة",
+              "command": "dmesg --level=err,warn",
+              "explanation_ar": "ابحث عن أخطاء نظام الملفات.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": []
+        },
+        "disk-inode-result": {
+          "id": "disk-inode-result",
+          "type": "result",
+          "diagnosis_ar": "نفدت Inodes بسبب عدد ملفات كبير",
+          "summary_ar": "المساحة بالجيجابايت قد تكون متاحة، لكن النظام لا يستطيع إنشاء ملفات جديدة.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "ملايين الملفات الصغيرة",
+            "Cache أو Sessions لا تنظف",
+            "Mail queue أو مجلد مؤقت"
+          ],
+          "actions": [
+            {
+              "title_ar": "عد الملفات حسب المجلد",
+              "command": "sudo find <PATH> -xdev -type f -printf '%h\\n' | sort | uniq -c | sort -n | tail",
+              "explanation_ar": "حدد المجلد الذي يحتوي أكبر عدد.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [
+            {
+              "title_ar": "إعادة فحص inodes",
+              "command": "df -ih",
+              "expected_result_ar": "انخفاض IUse%",
+              "requires_sudo": false
+            }
+          ],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": []
+        },
+        "disk-logs-result": {
+          "id": "disk-logs-result",
+          "type": "result",
+          "diagnosis_ar": "السجلات تستهلك معظم المساحة",
+          "summary_ar": "راجع سياسة Logrotate وحجم Journal قبل التنظيف.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Logrotate لا يعمل",
+            "خدمة تكرر خطأ بسرعة",
+            "Journal يحتفظ بمدة أو حجم كبير"
+          ],
+          "actions": [
+            {
+              "title_ar": "حجم Journal",
+              "command": "journalctl --disk-usage",
+              "explanation_ar": "يعرض الحجم الحالي.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "مراجعة Logrotate",
+              "command": "sudo logrotate -d /etc/logrotate.conf",
+              "explanation_ar": "اختبار دون تنفيذ.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "تحديد خدمة كثيرة الرسائل",
+              "command": "sudo du -sh /var/log/* | sort -h",
+              "explanation_ar": "اعرض أكبر السجلات.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": [
+            "لا تحذف سجلات تحتاجها للتحقيق أو الامتثال."
+          ]
+        },
+        "disk-data-result": {
+          "id": "disk-data-result",
+          "type": "result",
+          "diagnosis_ar": "ملفات بيانات أو نسخ احتياطية تملأ القسم",
+          "summary_ar": "قرر نقل الملفات أو أرشفتها أو توسيع التخزين وفق سياسة الاحتفاظ.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "نسخ احتياطية تراكمية",
+            "ملفات Upload قديمة",
+            "Dump أو Core files"
+          ],
+          "actions": [
+            {
+              "title_ar": "اعرض العمر والحجم",
+              "command": "sudo find <PATH> -xdev -type f -size +500M -printf \"%TY-%Tm-%Td %s %p\\n\" | sort",
+              "explanation_ar": "يساعد على اتخاذ قرار.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": [
+            "أنشئ نسخة احتياطية وتحقق من مالك البيانات قبل الحذف."
+          ]
+        },
+        "disk-deleted-result": {
+          "id": "disk-deleted-result",
+          "type": "result",
+          "diagnosis_ar": "عملية تحتفظ بملف محذوف",
+          "summary_ar": "المساحة لن تعود حتى تغلق العملية واصف الملف أو تعيد تشغيل الخدمة المعنية.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "تم حذف سجل أثناء بقاء الخدمة مفتوحة",
+            "عملية طويلة تحتفظ بملف مؤقت"
+          ],
+          "actions": [
+            {
+              "title_ar": "حدد الخدمة من PID",
+              "command": "ps -fp <PID>",
+              "explanation_ar": "اعرف العملية المالكة.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "أعد تشغيل الخدمة بعد التحقق",
+              "command": "sudo systemctl restart <SERVICE>",
+              "explanation_ar": "يحرر الملف عادةً.",
+              "risk": "high",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [
+            {
+              "title_ar": "فحص المساحة",
+              "command": "df -hT",
+              "expected_result_ar": "عودة المساحة",
+              "requires_sudo": false
+            }
+          ],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": [
+            "إعادة تشغيل خدمة إنتاجية قد تسبب انقطاعاً."
+          ]
+        },
+        "disk-sudo-result": {
+          "id": "disk-sudo-result",
+          "type": "result",
+          "diagnosis_ar": "التحليل يحتاج صلاحية لقراءة جميع المجلدات",
+          "summary_ar": "أعد أوامر التحليل باستخدام sudo دون تغيير أو حذف الملفات.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "مجلدات نظام غير قابلة للقراءة للمستخدم العادي"
+          ],
+          "actions": [
+            {
+              "title_ar": "تحليل بصلاحية قراءة",
+              "command": "sudo du -xhd1 <PATH> | sort -h",
+              "explanation_ar": "أمر قراءة فقط.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": []
+        },
+        "disk-deep": {
+          "id": "disk-deep",
+          "type": "result",
+          "diagnosis_ar": "يوجد فرق يحتاج فحص نقاط الربط أو Snapshots",
+          "summary_ar": "إذا لم تفسر الملفات الظاهرة المساحة، افحص Mounts وLVM وملفات محذوفة وSnapshots.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "Snapshot أو Thin pool",
+            "ملفات مخفية تحت نقطة ربط",
+            "Reserved blocks أو Metadata"
+          ],
+          "actions": [
+            {
+              "title_ar": "عرض نقاط الربط",
+              "command": "findmnt",
+              "explanation_ar": "راجع التداخل.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "عرض LVM",
+              "command": "sudo lvs -a -o +devices,data_percent,metadata_percent",
+              "explanation_ar": "افحص Thin pools وSnapshots.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": []
+        }
+      },
+      "related_entity_id": "find-and-clean-large-files"
+    },
+    {
+      "id": "package-install",
+      "title_ar": "لا أستطيع تثبيت برنامج أو حزمة",
+      "summary_ar": "يشخص المستودعات والاسم والاتصال والاعتماديات والتوقيع والمساحة.",
+      "icon": "⬡",
+      "category": "packages",
+      "estimated_minutes": 10,
+      "difficulty": "beginner",
+      "keywords_ar": [
+        "dnf لا يعمل",
+        "لا استطيع تثبيت",
+        "no match for argument",
+        "dependency error"
+      ],
+      "variables": [
+        {
+          "name": "PACKAGE",
+          "label_ar": "اسم الحزمة",
+          "example": "nginx",
+          "required": true
+        },
+        {
+          "name": "COMMAND",
+          "label_ar": "الأمر أو الملف المطلوب",
+          "example": "semanage",
+          "required": false
+        }
+      ],
+      "start_node": "pkg-repos",
+      "max_steps": 4,
+      "nodes": {
+        "pkg-repos": {
+          "id": "pkg-repos",
+          "type": "check",
+          "title_ar": "فحص المستودعات",
+          "text_ar": "تأكد أن DNF يرى مستودعات مفعلة.",
+          "command": "dnf repolist",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "قائمة المستودعات المفعلة.",
+          "choices": [
+            {
+              "id": "yes",
+              "label_ar": "تظهر مستودعات مفعلة",
+              "next": "pkg-search",
+              "tone": "positive"
+            },
+            {
+              "id": "none",
+              "label_ar": "لا تظهر مستودعات أو تظهر أخطاء",
+              "next": "pkg-repo-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "pkg-search": {
+          "id": "pkg-search",
+          "type": "check",
+          "title_ar": "البحث عن اسم الحزمة",
+          "text_ar": "ابحث عن الاسم قبل التثبيت.",
+          "command": "dnf search <PACKAGE>",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "حزم مطابقة أو رسالة خطأ.",
+          "choices": [
+            {
+              "id": "found",
+              "label_ar": "وجدت الحزمة",
+              "next": "pkg-install",
+              "tone": "positive"
+            },
+            {
+              "id": "not-found",
+              "label_ar": "لا توجد نتيجة مناسبة",
+              "next": "pkg-name-result",
+              "tone": "warning"
+            },
+            {
+              "id": "network",
+              "label_ar": "ظهرت أخطاء DNS أو اتصال",
+              "next": "pkg-network-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "pkg-install": {
+          "id": "pkg-install",
+          "type": "check",
+          "title_ar": "محاولة التثبيت",
+          "text_ar": "نفذ التثبيت وراجع نوع الخطأ.",
+          "command": "sudo dnf install <PACKAGE>",
+          "explanation_ar": "",
+          "risk": "medium",
+          "requires_sudo": true,
+          "expected_result_ar": "تثبيت ناجح أو رسالة خطأ محددة.",
+          "choices": [
+            {
+              "id": "success",
+              "label_ar": "تم التثبيت",
+              "next": "pkg-fixed",
+              "tone": "positive"
+            },
+            {
+              "id": "no-match",
+              "label_ar": "No match for argument",
+              "next": "pkg-name-result",
+              "tone": "warning"
+            },
+            {
+              "id": "deps",
+              "label_ar": "تعارض أو اعتماديات مكسورة",
+              "next": "pkg-deps-result",
+              "tone": "danger"
+            },
+            {
+              "id": "gpg",
+              "label_ar": "خطأ GPG أو Signature",
+              "next": "pkg-gpg-result",
+              "tone": "danger"
+            },
+            {
+              "id": "network",
+              "label_ar": "Timeout أو DNS",
+              "next": "pkg-network-result",
+              "tone": "danger"
+            },
+            {
+              "id": "space",
+              "label_ar": "No space left",
+              "next": "pkg-space-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "pkg-repo-result": {
+          "id": "pkg-repo-result",
+          "type": "result",
+          "diagnosis_ar": "مستودعات البرامج غير متاحة أو غير مفعلة",
+          "summary_ar": "لن يستطيع DNF العثور على الحزم قبل إصلاح تسجيل النظام أو ملفات المستودعات.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "النظام غير مسجل",
+            "Repository معطل",
+            "ملف repo غير صحيح",
+            "اتصال Proxy"
+          ],
+          "actions": [
+            {
+              "title_ar": "حالة التسجيل",
+              "command": "sudo subscription-manager status",
+              "explanation_ar": "للأنظمة المرتبطة باشتراك Red Hat.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "كل المستودعات",
+              "command": "dnf repolist --all",
+              "explanation_ar": "يعرض المعطلة والمفعلة.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "cmd-dnf",
+            "install-package-dnf"
+          ],
+          "safety_notes_ar": []
+        },
+        "pkg-name-result": {
+          "id": "pkg-name-result",
+          "type": "result",
+          "diagnosis_ar": "اسم الحزمة غير صحيح أو ليست في المستودعات الحالية",
+          "summary_ar": "استخدم البحث وdnf provides للوصول إلى الاسم الصحيح.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "اسم المنتج يختلف عن اسم الحزمة",
+            "مستودع إضافي مطلوب",
+            "خطأ إملائي"
+          ],
+          "actions": [
+            {
+              "title_ar": "بحث وصفي",
+              "command": "dnf search <PACKAGE>",
+              "explanation_ar": "ابحث بالاسم والوصف.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "البحث عن أمر أو ملف",
+              "command": "dnf provides '*/<COMMAND>'",
+              "explanation_ar": "يعثر على الحزمة التي توفره.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "cmd-dnf"
+          ],
+          "safety_notes_ar": []
+        },
+        "pkg-deps-result": {
+          "id": "pkg-deps-result",
+          "type": "result",
+          "diagnosis_ar": "تعارض حزم أو اعتماديات",
+          "summary_ar": "راجع الحزم المتعارضة ولا تستخدم --allowerasing دون فهم ما سيحذف.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "إصدارات من مستودعات مختلفة",
+            "حزمة Module أو Stream غير مناسب",
+            "حزمة طرف ثالث تتعارض"
+          ],
+          "actions": [
+            {
+              "title_ar": "فحص الاعتماديات",
+              "command": "sudo dnf check",
+              "explanation_ar": "يكشف المشكلات.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "عرض العملية المقترحة",
+              "command": "sudo dnf install <PACKAGE> --assumeno",
+              "explanation_ar": "يعرض ما سيحدث دون تنفيذ.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "cmd-dnf"
+          ],
+          "safety_notes_ar": [
+            "اقرأ قائمة الحذف قبل استخدام allowerasing."
+          ]
+        },
+        "pkg-gpg-result": {
+          "id": "pkg-gpg-result",
+          "type": "result",
+          "diagnosis_ar": "فشل التحقق من توقيع الحزمة",
+          "summary_ar": "لا تتجاوز التحقق؛ أصلح المفتاح أو مصدر المستودع.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "مفتاح مستودع غير مستورد",
+            "Metadata أو Package تالفة",
+            "مستودع غير موثوق"
+          ],
+          "actions": [
+            {
+              "title_ar": "تنظيف Metadata",
+              "command": "sudo dnf clean all",
+              "explanation_ar": "ثم أعد بناء cache.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "عرض إعداد المستودع",
+              "command": "dnf repoinfo",
+              "explanation_ar": "راجع GPG key والمصدر.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "cmd-dnf"
+          ],
+          "safety_notes_ar": [
+            "لا تستخدم --nogpgcheck مع مصدر غير موثوق."
+          ]
+        },
+        "pkg-network-result": {
+          "id": "pkg-network-result",
+          "type": "result",
+          "diagnosis_ar": "DNF لا يصل إلى المستودعات",
+          "summary_ar": "المشكلة في DNS أو الشبكة أو Proxy وليست في اسم الحزمة.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "DNS لا يعمل",
+            "Proxy غير مضبوط",
+            "المستودع غير متاح"
+          ],
+          "actions": [
+            {
+              "title_ar": "اختبار DNS",
+              "command": "getent hosts cdn.redhat.com",
+              "explanation_ar": "يجب أن يعيد عنواناً.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "اختبار HTTPS",
+              "command": "curl -I https://cdn.redhat.com",
+              "explanation_ar": "اختبار المسار والتشفير.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": []
+        },
+        "pkg-space-result": {
+          "id": "pkg-space-result",
+          "type": "result",
+          "diagnosis_ar": "لا توجد مساحة كافية للتثبيت",
+          "summary_ar": "حرر مساحة آمنة في القسم المتأثر ثم أعد المحاولة.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "امتلاء / أو /var",
+            "Cache حزم كبير"
+          ],
+          "actions": [
+            {
+              "title_ar": "فحص المساحة",
+              "command": "df -hT",
+              "explanation_ar": "حدد القسم.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "تنظيف cache",
+              "command": "sudo dnf clean all",
+              "explanation_ar": "يحذف ملفات DNF المؤقتة.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": []
+        },
+        "pkg-fixed": {
+          "id": "pkg-fixed",
+          "type": "result",
+          "diagnosis_ar": "تم تثبيت الحزمة",
+          "summary_ar": "تحقق من الإصدار والملفات أو الخدمة التي وفرتها الحزمة.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "تمت العملية بنجاح"
+          ],
+          "actions": [
+            {
+              "title_ar": "التحقق من الحزمة",
+              "command": "rpm -q <PACKAGE>",
+              "explanation_ar": "يعرض الإصدار.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "عرض ملفات الحزمة",
+              "command": "rpm -ql <PACKAGE>",
+              "explanation_ar": "يعرض الملفات المثبتة.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "install-package-dnf"
+          ],
+          "safety_notes_ar": []
+        }
+      },
+      "related_entity_id": "install-package-dnf"
+    },
+    {
+      "id": "network-connectivity",
+      "title_ar": "لا يوجد إنترنت أو اتصال شبكي",
+      "summary_ar": "يفحص الرابط وIP والبوابة وDNS وHTTPS بالترتيب.",
+      "icon": "⌘",
+      "category": "network",
+      "estimated_minutes": 12,
+      "difficulty": "beginner",
+      "keywords_ar": [
+        "لا يوجد انترنت",
+        "الشبكة لا تعمل",
+        "dns لا يعمل",
+        "network unreachable"
+      ],
+      "variables": [
+        {
+          "name": "GATEWAY",
+          "label_ar": "عنوان البوابة",
+          "example": "192.168.1.1",
+          "required": true
+        },
+        {
+          "name": "INTERFACE",
+          "label_ar": "اسم الواجهة",
+          "example": "ens192",
+          "required": false
+        },
+        {
+          "name": "CONNECTION",
+          "label_ar": "اسم اتصال NetworkManager",
+          "example": "System ens192",
+          "required": false
+        },
+        {
+          "name": "URL",
+          "label_ar": "الرابط الفعلي للاختبار",
+          "example": "https://example.com",
+          "required": false
+        }
+      ],
+      "start_node": "net-link",
+      "max_steps": 6,
+      "nodes": {
+        "net-link": {
+          "id": "net-link",
+          "type": "check",
+          "title_ar": "فحص حالة واجهات الشبكة",
+          "text_ar": "اعرض حالة الأجهزة والاتصالات.",
+          "command": "nmcli device status",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "واجهة متصلة واتصال NetworkManager.",
+          "choices": [
+            {
+              "id": "connected",
+              "label_ar": "الواجهة Connected",
+              "next": "net-ip",
+              "tone": "positive"
+            },
+            {
+              "id": "disconnected",
+              "label_ar": "الواجهة Disconnected أو Unavailable",
+              "next": "net-link-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "net-ip": {
+          "id": "net-ip",
+          "type": "check",
+          "title_ar": "فحص عنوان IP",
+          "text_ar": "اعرض عناوين الواجهات.",
+          "command": "ip address show",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "عنوان IPv4 أو IPv6 مناسب.",
+          "choices": [
+            {
+              "id": "has-ip",
+              "label_ar": "يوجد عنوان IP صحيح",
+              "next": "net-route",
+              "tone": "positive"
+            },
+            {
+              "id": "no-ip",
+              "label_ar": "لا يوجد عنوان أو يظهر 169.254.x.x",
+              "next": "net-dhcp-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "net-route": {
+          "id": "net-route",
+          "type": "check",
+          "title_ar": "فحص البوابة والمسارات",
+          "text_ar": "اعرض جدول التوجيه.",
+          "command": "ip route show",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "default via GATEWAY dev INTERFACE.",
+          "choices": [
+            {
+              "id": "default",
+              "label_ar": "يوجد Default Route",
+              "next": "net-gateway",
+              "tone": "positive"
+            },
+            {
+              "id": "none",
+              "label_ar": "لا توجد بوابة افتراضية",
+              "next": "net-route-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "net-gateway": {
+          "id": "net-gateway",
+          "type": "check",
+          "title_ar": "اختبار البوابة المحلية",
+          "text_ar": "اختبر الوصول إلى بوابة الشبكة.",
+          "command": "ping -c 4 <GATEWAY>",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "ردود من البوابة أو مؤشر على مشكلة محلية.",
+          "choices": [
+            {
+              "id": "yes",
+              "label_ar": "البوابة ترد",
+              "next": "net-dns",
+              "tone": "positive"
+            },
+            {
+              "id": "no",
+              "label_ar": "البوابة لا ترد",
+              "next": "net-local-result",
+              "tone": "danger"
+            },
+            {
+              "id": "blocked",
+              "label_ar": "Ping محجوب أو غير متأكد",
+              "next": "net-dns",
+              "tone": "normal"
+            }
+          ]
+        },
+        "net-dns": {
+          "id": "net-dns",
+          "type": "check",
+          "title_ar": "اختبار حل الأسماء",
+          "text_ar": "استخدم NSS لحل اسم معروف.",
+          "command": "getent hosts redhat.com",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "عنوان IP لاسم النطاق.",
+          "choices": [
+            {
+              "id": "works",
+              "label_ar": "يرجع عنوان IP",
+              "next": "net-internet",
+              "tone": "positive"
+            },
+            {
+              "id": "fails",
+              "label_ar": "لا يرجع نتيجة",
+              "next": "net-dns-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "net-internet": {
+          "id": "net-internet",
+          "type": "check",
+          "title_ar": "اختبار اتصال HTTPS",
+          "text_ar": "اختبر الوصول إلى خدمة خارجية عبر HTTPS.",
+          "command": "curl -I --max-time 10 https://www.redhat.com",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "رؤوس HTTP أو خطأ محدد.",
+          "choices": [
+            {
+              "id": "works",
+              "label_ar": "تصل استجابة HTTP",
+              "next": "net-fixed",
+              "tone": "positive"
+            },
+            {
+              "id": "fails",
+              "label_ar": "Timeout أو فشل اتصال",
+              "next": "net-upstream-result",
+              "tone": "danger"
+            },
+            {
+              "id": "tls",
+              "label_ar": "خطأ شهادة أو TLS",
+              "next": "net-tls-result",
+              "tone": "warning"
+            }
+          ]
+        },
+        "net-link-result": {
+          "id": "net-link-result",
+          "type": "result",
+          "diagnosis_ar": "واجهة الشبكة غير متصلة",
+          "summary_ar": "ابدأ بتفعيل الاتصال الصحيح أو فحص الرابط الفيزيائي/الافتراضي.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Connection غير مفعّل",
+            "كابل أو vNIC غير متصل",
+            "واجهة Disabled"
+          ],
+          "actions": [
+            {
+              "title_ar": "عرض الاتصالات",
+              "command": "nmcli connection show",
+              "explanation_ar": "اعثر على اسم الاتصال.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "تفعيل الاتصال",
+              "command": "sudo nmcli connection up <CONNECTION>",
+              "explanation_ar": "فعّل الملف الصحيح.",
+              "risk": "medium",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": []
+        },
+        "net-dhcp-result": {
+          "id": "net-dhcp-result",
+          "type": "result",
+          "diagnosis_ar": "الجهاز لم يحصل على عنوان IP صالح",
+          "summary_ar": "راجع DHCP أو إعداد الاتصال الثابت.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "DHCP لا يرد",
+            "ملف الاتصال خاطئ",
+            "تعارض عنوان"
+          ],
+          "actions": [
+            {
+              "title_ar": "تفاصيل الاتصال",
+              "command": "nmcli device show <INTERFACE>",
+              "explanation_ar": "يعرض IP وGateway وDNS.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "إعادة الاتصال",
+              "command": "sudo nmcli connection up <CONNECTION>",
+              "explanation_ar": "يعيد طلب الإعداد.",
+              "risk": "medium",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": []
+        },
+        "net-route-result": {
+          "id": "net-route-result",
+          "type": "result",
+          "diagnosis_ar": "لا توجد بوابة افتراضية",
+          "summary_ar": "الاتصال المحلي قد يعمل، لكن لا يوجد مسار إلى الشبكات الخارجية.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "إعداد IPv4 Gateway ناقص",
+            "DHCP لم يرسل Router",
+            "Route حذف"
+          ],
+          "actions": [
+            {
+              "title_ar": "عرض ملف الاتصال",
+              "command": "nmcli connection show <CONNECTION>",
+              "explanation_ar": "راجع gateway وmethod.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "عرض المسارات",
+              "command": "ip route show",
+              "explanation_ar": "تأكد بعد التصحيح.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": []
+        },
+        "net-local-result": {
+          "id": "net-local-result",
+          "type": "result",
+          "diagnosis_ar": "المشكلة بين الجهاز والشبكة المحلية",
+          "summary_ar": "لا يمكن الوصول إلى البوابة، لذلك افحص VLAN والرابط والعنوان والقناع.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "VLAN غير صحيحة",
+            "قناع شبكة خاطئ",
+            "بوابة غير صحيحة",
+            "مشكلة Switch أو vSwitch"
+          ],
+          "actions": [
+            {
+              "title_ar": "معلومات الرابط",
+              "command": "ip -br link",
+              "explanation_ar": "حالة UP/DOWN.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "جدول الجيران",
+              "command": "ip neigh show",
+              "explanation_ar": "يكشف فشل ARP/NDP.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": []
+        },
+        "net-dns-result": {
+          "id": "net-dns-result",
+          "type": "result",
+          "diagnosis_ar": "الشبكة تعمل لكن DNS لا يحل الأسماء",
+          "summary_ar": "راجع خوادم DNS وملف resolv.conf وNetworkManager.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "DNS غير مضبوط",
+            "الخادم DNS غير متاح",
+            "Search domain أو Firewall"
+          ],
+          "actions": [
+            {
+              "title_ar": "عرض DNS",
+              "command": "resolvectl status 2>/dev/null || cat /etc/resolv.conf",
+              "explanation_ar": "اعرض الخوادم الحالية.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "اختبار خادم DNS",
+              "command": "dig redhat.com",
+              "explanation_ar": "يعرض الاستجابة.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": []
+        },
+        "net-upstream-result": {
+          "id": "net-upstream-result",
+          "type": "result",
+          "diagnosis_ar": "DNS يعمل لكن الاتصال الخارجي لا يصل",
+          "summary_ar": "المشكلة قد تكون في Gateway أعلى أو Proxy أو جدار ناري.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "Firewall خارجي",
+            "Proxy مطلوب",
+            "Route أو NAT أعلى الشبكة"
+          ],
+          "actions": [
+            {
+              "title_ar": "تتبع المسار",
+              "command": "traceroute www.redhat.com",
+              "explanation_ar": "حدد آخر نقطة تصل إليها.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "متغيرات Proxy",
+              "command": "env | grep -i proxy",
+              "explanation_ar": "تحقق من الإعداد.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": []
+        },
+        "net-tls-result": {
+          "id": "net-tls-result",
+          "type": "result",
+          "diagnosis_ar": "الاتصال يصل لكن التحقق من TLS يفشل",
+          "summary_ar": "راجع الوقت وشهادات الثقة وProxy الذي يفك التشفير.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "وقت النظام خاطئ",
+            "CA certificates قديمة",
+            "Proxy يعيد توقيع الشهادات"
+          ],
+          "actions": [
+            {
+              "title_ar": "فحص الوقت",
+              "command": "timedatectl",
+              "explanation_ar": "تأكد من الوقت وNTP.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "تفاصيل TLS",
+              "command": "curl -Iv https://www.redhat.com",
+              "explanation_ar": "يعرض سلسلة الشهادة.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": []
+        },
+        "net-fixed": {
+          "id": "net-fixed",
+          "type": "result",
+          "diagnosis_ar": "الاتصال الشبكي وDNS وHTTPS تعمل",
+          "summary_ar": "المسار الأساسي سليم. إذا بقي عطل تطبيق محدد فشخّص منفذه وخدمته.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "لا يوجد عطل عام في الشبكة"
+          ],
+          "actions": [
+            {
+              "title_ar": "اختبار الهدف المطلوب",
+              "command": "curl -Iv <URL>",
+              "explanation_ar": "اختبر الخدمة الفعلية.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": []
+        }
+      },
+      "related_entity_id": "concept-network-stack"
+    },
+    {
+      "id": "slow-system",
+      "title_ar": "النظام بطيء أو الحمل مرتفع",
+      "summary_ar": "يفصل بين CPU والذاكرة وSwap والتخزين والبطء المتقطع.",
+      "icon": "◷",
+      "category": "processes",
+      "estimated_minutes": 12,
+      "difficulty": "intermediate",
+      "keywords_ar": [
+        "النظام بطيء",
+        "cpu عالي",
+        "ram ممتلئة",
+        "load average"
+      ],
+      "variables": [
+        {
+          "name": "PID",
+          "label_ar": "PID إن كان معروفاً",
+          "example": "1234",
+          "required": false
+        }
+      ],
+      "start_node": "slow-load",
+      "max_steps": 5,
+      "nodes": {
+        "slow-load": {
+          "id": "slow-load",
+          "type": "check",
+          "title_ar": "فحص الحمل العام",
+          "text_ar": "اعرض مدة التشغيل ومتوسط الحمل.",
+          "command": "uptime",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Load averages لآخر 1 و5 و15 دقيقة.",
+          "choices": [
+            {
+              "id": "high",
+              "label_ar": "Load average مرتفع مقارنة بعدد الأنوية",
+              "next": "slow-top",
+              "tone": "warning"
+            },
+            {
+              "id": "normal",
+              "label_ar": "الحمل طبيعي لكن النظام بطيء",
+              "next": "slow-memory",
+              "tone": "normal"
+            }
+          ]
+        },
+        "slow-top": {
+          "id": "slow-top",
+          "type": "check",
+          "title_ar": "تحديد العمليات الأعلى",
+          "text_ar": "راقب CPU وMemory وwa لبضع ثوان.",
+          "command": "top",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "العمليات الأعلى ونسب CPU وMemory وwa.",
+          "choices": [
+            {
+              "id": "cpu",
+              "label_ar": "عملية تستهلك CPU بشكل واضح",
+              "next": "slow-cpu-result",
+              "tone": "danger"
+            },
+            {
+              "id": "memory",
+              "label_ar": "الذاكرة أو Swap مرتفعة",
+              "next": "slow-memory",
+              "tone": "warning"
+            },
+            {
+              "id": "io",
+              "label_ar": "قيمة wa مرتفعة أو العمليات تنتظر I/O",
+              "next": "slow-io",
+              "tone": "warning"
+            },
+            {
+              "id": "none",
+              "label_ar": "لا يوجد مستهلك واضح",
+              "next": "slow-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "slow-memory": {
+          "id": "slow-memory",
+          "type": "check",
+          "title_ar": "فحص الذاكرة وSwap",
+          "text_ar": "اعرض الذاكرة المتاحة وليس free فقط.",
+          "command": "free -h",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "available memory واستخدام Swap.",
+          "choices": [
+            {
+              "id": "swap",
+              "label_ar": "Swap مستخدمة بكثافة وavailable منخفض",
+              "next": "slow-memory-result",
+              "tone": "danger"
+            },
+            {
+              "id": "normal",
+              "label_ar": "الذاكرة متاحة",
+              "next": "slow-io",
+              "tone": "positive"
+            }
+          ]
+        },
+        "slow-io": {
+          "id": "slow-io",
+          "type": "check",
+          "title_ar": "فحص ضغط الإدخال والإخراج",
+          "text_ar": "استخدم vmstat لمراقبة الانتظار والصفوف.",
+          "command": "vmstat 1 5",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "سلسلة قياسات CPU وMemory وI/O.",
+          "choices": [
+            {
+              "id": "wait",
+              "label_ar": "wa أو b مرتفعة باستمرار",
+              "next": "slow-io-result",
+              "tone": "danger"
+            },
+            {
+              "id": "normal",
+              "label_ar": "I/O طبيعي",
+              "next": "slow-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "slow-cpu-result": {
+          "id": "slow-cpu-result",
+          "type": "result",
+          "diagnosis_ar": "عملية أو خدمة تستهلك المعالج",
+          "summary_ar": "حدد هل الاستهلاك متوقع، ثم افحص سجل الخدمة والطلب الذي سبب الحمل.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Loop أو خطأ تطبيق",
+            "عملية Batch ثقيلة",
+            "عدد Workers غير مناسب",
+            "ضغط طلبات حقيقي"
+          ],
+          "actions": [
+            {
+              "title_ar": "تفاصيل العملية",
+              "command": "ps -fp <PID>",
+              "explanation_ar": "اعرض الأمر الكامل.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "خيوط العملية",
+              "command": "top -H -p <PID>",
+              "explanation_ar": "حدد Thread عالي الاستهلاك.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "legacy-proc-top"
+          ],
+          "safety_notes_ar": [
+            "لا تقتل عملية إنتاجية قبل فهم أثرها."
+          ]
+        },
+        "slow-memory-result": {
+          "id": "slow-memory-result",
+          "type": "result",
+          "diagnosis_ar": "ضغط ذاكرة واستخدام Swap",
+          "summary_ar": "النظام يبدّل صفحات الذاكرة إلى القرص، ما يسبب بطئاً واضحاً.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "تسرب ذاكرة",
+            "حجم Workload أكبر من RAM",
+            "إعداد خدمة غير مناسب"
+          ],
+          "actions": [
+            {
+              "title_ar": "أكبر العمليات ذاكرة",
+              "command": "ps aux --sort=-%mem | head -20",
+              "explanation_ar": "حدد المستهلكين.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "أحداث OOM",
+              "command": "journalctl -k | grep -i -E \"oom|killed process\"",
+              "explanation_ar": "ابحث عن قتل عمليات.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "legacy-proc-free"
+          ],
+          "safety_notes_ar": []
+        },
+        "slow-io-result": {
+          "id": "slow-io-result",
+          "type": "result",
+          "diagnosis_ar": "النظام ينتظر التخزين أو I/O",
+          "summary_ar": "ارتفاع wa أو العمليات المحجوبة يشير إلى قرص بطيء أو ضغط كتابة أو عطل تخزين.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "ضغط سجلات أو قاعدة بيانات",
+            "قرص أو SAN بطيء",
+            "Filesystem أو Device errors"
+          ],
+          "actions": [
+            {
+              "title_ar": "إحصاءات الأجهزة",
+              "command": "iostat -xz 1 5",
+              "explanation_ar": "يحتاج sysstat غالباً.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "أخطاء النواة",
+              "command": "dmesg --level=err,warn",
+              "explanation_ar": "راجع أخطاء الأقراص.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": []
+        },
+        "slow-deep": {
+          "id": "slow-deep",
+          "type": "result",
+          "diagnosis_ar": "البطء غير ظاهر في اللقطة الحالية",
+          "summary_ar": "قد يكون متقطعاً أو مرتبطاً بالشبكة أو DNS أو تطبيق محدد. اجمع قياسات أثناء حدوث البطء.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "مشكلة متقطعة",
+            "DNS بطيء",
+            "Lock أو انتظار تطبيق",
+            "حدود cgroup"
+          ],
+          "actions": [
+            {
+              "title_ar": "تسجيل vmstat",
+              "command": "vmstat 1 60 > /tmp/vmstat.log",
+              "explanation_ar": "يجمع دقيقة من القياسات.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "مراجعة الخدمات الفاشلة",
+              "command": "systemctl --failed",
+              "explanation_ar": "يستبعد أعطالاً جانبية.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": []
+        }
+      },
+      "related_entity_id": "legacy-proc-top"
+    },
+    {
+      "id": "permission-denied",
+      "title_ar": "تظهر Permission denied",
+      "summary_ar": "يفحص rwx والملكية وACL والمجلدات الأب وSELinux وحالة Mount.",
+      "icon": "⌑",
+      "category": "permissions",
+      "estimated_minutes": 12,
+      "difficulty": "intermediate",
+      "keywords_ar": [
+        "permission denied",
+        "صلاحية مرفوضة",
+        "لا استطيع فتح ملف",
+        "chmod"
+      ],
+      "variables": [
+        {
+          "name": "PATH",
+          "label_ar": "مسار الملف أو المجلد",
+          "example": "/srv/app/config.yml",
+          "required": true
+        },
+        {
+          "name": "USER",
+          "label_ar": "المستخدم المتأثر",
+          "example": "app",
+          "required": false
+        },
+        {
+          "name": "GROUP",
+          "label_ar": "المجموعة المطلوبة",
+          "example": "app",
+          "required": false
+        },
+        {
+          "name": "MODE",
+          "label_ar": "الصلاحية المقترحة",
+          "example": "640",
+          "required": false
+        },
+        {
+          "name": "PERMS",
+          "label_ar": "ACL المقترحة",
+          "example": "rw",
+          "required": false
+        },
+        {
+          "name": "SERVICE",
+          "label_ar": "اسم الخدمة إن وجدت",
+          "example": "nginx",
+          "required": false
+        },
+        {
+          "name": "PARENT_PATH",
+          "label_ar": "المجلد الأب المتأثر",
+          "example": "/srv/app",
+          "required": false
+        },
+        {
+          "name": "COMMAND",
+          "label_ar": "الأمر الذي يفشل",
+          "example": "cat /srv/app/config.yml",
+          "required": false
+        }
+      ],
+      "start_node": "perm-basic",
+      "max_steps": 5,
+      "nodes": {
+        "perm-basic": {
+          "id": "perm-basic",
+          "type": "check",
+          "title_ar": "عرض الملكية والصلاحيات",
+          "text_ar": "اعرض تفاصيل الملف أو المجلد.",
+          "command": "ls -ldZ <PATH>",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "المالك والمجموعة وrwx وسياق SELinux.",
+          "choices": [
+            {
+              "id": "unix",
+              "label_ar": "المالك أو rwx لا تسمح للمستخدم",
+              "next": "perm-unix-result",
+              "tone": "warning"
+            },
+            {
+              "id": "looks-ok",
+              "label_ar": "الصلاحيات تبدو صحيحة",
+              "next": "perm-acl",
+              "tone": "normal"
+            },
+            {
+              "id": "selinux",
+              "label_ar": "سياق SELinux يبدو غير متوقع",
+              "next": "perm-selinux-result",
+              "tone": "warning"
+            },
+            {
+              "id": "missing",
+              "label_ar": "المسار غير موجود",
+              "next": "perm-missing-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "perm-acl": {
+          "id": "perm-acl",
+          "type": "check",
+          "title_ar": "فحص ACL",
+          "text_ar": "قد توجد قواعد إضافية تتغلب على الصلاحيات المعتادة.",
+          "command": "getfacl -p <PATH>",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "قواعد user/group/mask.",
+          "choices": [
+            {
+              "id": "denied",
+              "label_ar": "ACL أو mask تمنع المستخدم",
+              "next": "perm-acl-result",
+              "tone": "warning"
+            },
+            {
+              "id": "normal",
+              "label_ar": "ACL طبيعية أو غير موجودة",
+              "next": "perm-parent",
+              "tone": "positive"
+            }
+          ]
+        },
+        "perm-parent": {
+          "id": "perm-parent",
+          "type": "check",
+          "title_ar": "فحص صلاحيات كل مجلد في المسار",
+          "text_ar": "يحتاج المستخدم صلاحية x على جميع المجلدات الأب.",
+          "command": "namei -l <PATH>",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "صلاحيات كل جزء من المسار.",
+          "choices": [
+            {
+              "id": "blocked",
+              "label_ar": "مجلد أب يمنع العبور",
+              "next": "perm-parent-result",
+              "tone": "warning"
+            },
+            {
+              "id": "normal",
+              "label_ar": "كل المجلدات تسمح بالعبور",
+              "next": "perm-readonly",
+              "tone": "positive"
+            }
+          ]
+        },
+        "perm-readonly": {
+          "id": "perm-readonly",
+          "type": "check",
+          "title_ar": "فحص حالة نظام الملفات",
+          "text_ar": "تأكد أن نقطة الربط ليست Read-only.",
+          "command": "findmnt -T <PATH> -o TARGET,SOURCE,FSTYPE,OPTIONS",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "خيارات نقطة الربط.",
+          "choices": [
+            {
+              "id": "ro",
+              "label_ar": "تظهر ro ضمن الخيارات",
+              "next": "perm-ro-result",
+              "tone": "danger"
+            },
+            {
+              "id": "rw",
+              "label_ar": "تظهر rw",
+              "next": "perm-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "perm-unix-result": {
+          "id": "perm-unix-result",
+          "type": "result",
+          "diagnosis_ar": "ملكية أو صلاحيات Unix تمنع الوصول",
+          "summary_ar": "عدّل أقل قدر لازم: المالك أو المجموعة أو rwx، وتجنب 777.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "مالك غير صحيح",
+            "المستخدم ليس في المجموعة",
+            "نقص r أو w أو x"
+          ],
+          "actions": [
+            {
+              "title_ar": "هوية المستخدم",
+              "command": "id <USER>",
+              "explanation_ar": "اعرض المجموعات.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "تغيير المجموعة عند الحاجة",
+              "command": "sudo chown :<GROUP> <PATH>",
+              "explanation_ar": "غيّر الملكية وفق التصميم.",
+              "risk": "high",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "تعديل صلاحيات محسوب",
+              "command": "sudo chmod <MODE> <PATH>",
+              "explanation_ar": "اختر قيمة محددة لا 777.",
+              "risk": "high",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-linux-permissions"
+          ],
+          "safety_notes_ar": [
+            "لا تستخدم chmod 777 كحل عام."
+          ]
+        },
+        "perm-acl-result": {
+          "id": "perm-acl-result",
+          "type": "result",
+          "diagnosis_ar": "ACL أو Mask تمنع الصلاحية الفعلية",
+          "summary_ar": "راجع السطر effective والـmask، ثم عدّل القاعدة المطلوبة فقط.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "ACL لمستخدم صريحة",
+            "mask تقيد صلاحيات المجموعة",
+            "Default ACL غير مناسبة"
+          ],
+          "actions": [
+            {
+              "title_ar": "عرض ACL",
+              "command": "getfacl -p <PATH>",
+              "explanation_ar": "احتفظ بالحالة.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "منح صلاحية محددة",
+              "command": "sudo setfacl -m u:<USER>:<PERMS> <PATH>",
+              "explanation_ar": "استخدم أقل صلاحية.",
+              "risk": "high",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-linux-permissions",
+            "legacy-perm-setfacl"
+          ],
+          "safety_notes_ar": []
+        },
+        "perm-parent-result": {
+          "id": "perm-parent-result",
+          "type": "result",
+          "diagnosis_ar": "مجلد أب يمنع عبور المسار",
+          "summary_ar": "حتى لو كان الملف مقروءاً، يجب توفر x على كل مجلد أب.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "مجلد أب بصلاحية 700",
+            "مجموعة غير مناسبة"
+          ],
+          "actions": [
+            {
+              "title_ar": "إصلاح المجلد المحدد",
+              "command": "sudo chmod g+x <PARENT_PATH>",
+              "explanation_ar": "فقط إذا كان التصميم يسمح.",
+              "risk": "high",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-linux-permissions"
+          ],
+          "safety_notes_ar": []
+        },
+        "perm-selinux-result": {
+          "id": "perm-selinux-result",
+          "type": "result",
+          "diagnosis_ar": "سياق SELinux قد يكون سبب الرفض",
+          "summary_ar": "قارن السياق بمسار مماثل واستعد السياق الافتراضي عند الحاجة.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "نسخ ملف مع سياق خاطئ",
+            "نقل ملف من home إلى مسار خدمة",
+            "تعريف fcontext مفقود"
+          ],
+          "actions": [
+            {
+              "title_ar": "استعادة السياق",
+              "command": "sudo restorecon -Rv <PATH>",
+              "explanation_ar": "يعيد الافتراضي.",
+              "risk": "medium",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "فحص AVC",
+              "command": "sudo ausearch -m AVC -ts recent",
+              "explanation_ar": "يثبت سبب SELinux.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "diagnose-selinux-denial"
+          ],
+          "safety_notes_ar": []
+        },
+        "perm-missing-result": {
+          "id": "perm-missing-result",
+          "type": "result",
+          "diagnosis_ar": "المسار غير موجود أو مكتوب بشكل خاطئ",
+          "summary_ar": "تحقق من الاسم والمسار ونقطة الربط.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "خطأ في حالة الأحرف",
+            "مجلد غير مركب",
+            "متغير مسار غير صحيح"
+          ],
+          "actions": [
+            {
+              "title_ar": "عرض المسار الأب",
+              "command": "ls -la <PARENT_PATH>",
+              "explanation_ar": "اعرض الأسماء الفعلية.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "نقاط الربط",
+              "command": "findmnt",
+              "explanation_ar": "تأكد من Mount.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": []
+        },
+        "perm-ro-result": {
+          "id": "perm-ro-result",
+          "type": "result",
+          "diagnosis_ar": "نظام الملفات مركب للقراءة فقط",
+          "summary_ar": "لا تعالجه بـchmod؛ افحص سبب remount ro ورسائل النواة.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "خطأ في نظام الملفات",
+            "إعداد Mount ro",
+            "حماية Storage"
+          ],
+          "actions": [
+            {
+              "title_ar": "أخطاء النواة",
+              "command": "dmesg --level=err,warn",
+              "explanation_ar": "ابحث عن filesystem errors.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "عرض الخيارات",
+              "command": "findmnt -T <PATH>",
+              "explanation_ar": "سجل المصدر والخيارات.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": [
+            "لا تعِد التركيب rw قبل فهم سبب التحول إلى read-only."
+          ]
+        },
+        "perm-deep": {
+          "id": "perm-deep",
+          "type": "result",
+          "diagnosis_ar": "الصلاحيات الظاهرة سليمة؛ افحص التطبيق أو SELinux أو Mount",
+          "summary_ar": "قد ينفذ التطبيق بحساب مختلف أو يستخدم مساراً آخر.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "حساب الخدمة مختلف عن توقعك",
+            "SELinux AVC",
+            "Container namespace",
+            "التطبيق يفتح ملفاً آخر"
+          ],
+          "actions": [
+            {
+              "title_ar": "حساب الخدمة",
+              "command": "systemctl show <SERVICE> -p User -p Group",
+              "explanation_ar": "يعرض المستخدم الفعلي.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "تتبع النظام",
+              "command": "sudo strace -e trace=file -f <COMMAND>",
+              "explanation_ar": "متقدم؛ يظهر المسار الذي يفشل.",
+              "risk": "medium",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-linux-permissions",
+            "diagnose-selinux-denial"
+          ],
+          "safety_notes_ar": []
+        }
+      },
+      "related_entity_id": "concept-linux-permissions"
+    },
+    {
+      "id": "port-unreachable",
+      "title_ar": "خدمة أو منفذ لا يمكن الوصول إليه",
+      "summary_ar": "يفحص الاستماع وBind والخدمة وfirewalld والمسار الخارجي.",
+      "icon": "⇄",
+      "category": "firewall",
+      "estimated_minutes": 12,
+      "difficulty": "intermediate",
+      "keywords_ar": [
+        "البورت لا يفتح",
+        "port unreachable",
+        "connection refused",
+        "فتح منفذ"
+      ],
+      "variables": [
+        {
+          "name": "HOST",
+          "label_ar": "عنوان الخادم",
+          "example": "192.168.1.10",
+          "required": true
+        },
+        {
+          "name": "PORT",
+          "label_ar": "رقم المنفذ",
+          "example": "8080",
+          "required": true
+        },
+        {
+          "name": "PROTOCOL",
+          "label_ar": "البروتوكول",
+          "example": "tcp",
+          "required": true,
+          "default": "tcp"
+        },
+        {
+          "name": "SERVICE",
+          "label_ar": "اسم الخدمة",
+          "example": "nginx",
+          "required": false
+        },
+        {
+          "name": "CONFIG_PATH",
+          "label_ar": "ملف الإعداد إن عرف",
+          "example": "/etc/nginx/nginx.conf",
+          "required": false
+        }
+      ],
+      "start_node": "port-listen",
+      "max_steps": 5,
+      "nodes": {
+        "port-listen": {
+          "id": "port-listen",
+          "type": "check",
+          "title_ar": "هل توجد خدمة تستمع على المنفذ؟",
+          "text_ar": "افحص العنوان والبروتوكول والعملية.",
+          "command": "sudo ss -tulpn | grep \":<PORT>\"",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "سطر LISTEN مع العنوان والعملية.",
+          "choices": [
+            {
+              "id": "none",
+              "label_ar": "لا توجد نتيجة",
+              "next": "port-no-listen",
+              "tone": "danger"
+            },
+            {
+              "id": "localhost",
+              "label_ar": "تستمع على 127.0.0.1 أو ::1 فقط",
+              "next": "port-bind-result",
+              "tone": "warning"
+            },
+            {
+              "id": "all",
+              "label_ar": "تستمع على 0.0.0.0 أو عنوان الخادم",
+              "next": "port-firewall",
+              "tone": "positive"
+            }
+          ]
+        },
+        "port-no-listen": {
+          "id": "port-no-listen",
+          "type": "check",
+          "title_ar": "فحص حالة الخدمة",
+          "text_ar": "اعرض حالة الخدمة التي يفترض أن تفتح المنفذ.",
+          "command": "systemctl status <SERVICE> --no-pager -l",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "حالة الخدمة ورسالتها.",
+          "choices": [
+            {
+              "id": "failed",
+              "label_ar": "الخدمة Failed أو Inactive",
+              "next": "port-service-result",
+              "tone": "danger"
+            },
+            {
+              "id": "active",
+              "label_ar": "الخدمة Active لكن لا تستمع",
+              "next": "port-config-result",
+              "tone": "warning"
+            },
+            {
+              "id": "unknown",
+              "label_ar": "لا أعرف اسم الخدمة",
+              "next": "port-process-result",
+              "tone": "normal"
+            }
+          ]
+        },
+        "port-firewall": {
+          "id": "port-firewall",
+          "type": "check",
+          "title_ar": "فحص firewalld",
+          "text_ar": "تحقق هل المنفذ مسموح في المنطقة النشطة.",
+          "command": "sudo firewall-cmd --query-port=<PORT>/<PROTOCOL>",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "yes أو no.",
+          "choices": [
+            {
+              "id": "yes",
+              "label_ar": "تظهر yes",
+              "next": "port-client",
+              "tone": "positive"
+            },
+            {
+              "id": "no",
+              "label_ar": "تظهر no",
+              "next": "port-firewall-result",
+              "tone": "danger"
+            },
+            {
+              "id": "inactive",
+              "label_ar": "firewalld غير نشط",
+              "next": "port-client",
+              "tone": "normal"
+            }
+          ]
+        },
+        "port-client": {
+          "id": "port-client",
+          "type": "check",
+          "title_ar": "اختبار المنفذ من جهاز العميل",
+          "text_ar": "نفذ الاختبار من جهاز آخر للوصول إلى الخادم.",
+          "command": "nc -vz <HOST> <PORT>",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "succeeded أو refused أو timeout.",
+          "choices": [
+            {
+              "id": "open",
+              "label_ar": "الاتصال ينجح",
+              "next": "port-app-result",
+              "tone": "positive"
+            },
+            {
+              "id": "refused",
+              "label_ar": "Connection refused",
+              "next": "port-refused-result",
+              "tone": "danger"
+            },
+            {
+              "id": "timeout",
+              "label_ar": "Timed out",
+              "next": "port-external-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "port-bind-result": {
+          "id": "port-bind-result",
+          "type": "result",
+          "diagnosis_ar": "الخدمة تستمع محلياً فقط",
+          "summary_ar": "غيّر إعداد bind/listen إلى عنوان الشبكة المناسب وفق متطلبات الأمان.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "ListenAddress أو bind مضبوط على localhost",
+            "وضع تطوير محلي"
+          ],
+          "actions": [
+            {
+              "title_ar": "راجع إعداد الاستماع",
+              "command": "grep -Rni \"listen\\|bind\" <CONFIG_PATH>",
+              "explanation_ar": "اعثر على القيمة.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "أعد تشغيل الخدمة",
+              "command": "sudo systemctl restart <SERVICE>",
+              "explanation_ar": "بعد اختبار الإعداد.",
+              "risk": "high",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": [
+            "لا تستمع على كل الواجهات إذا كانت الخدمة يجب أن تبقى داخلية."
+          ]
+        },
+        "port-service-result": {
+          "id": "port-service-result",
+          "type": "result",
+          "diagnosis_ar": "الخدمة المسؤولة عن المنفذ لا تعمل",
+          "summary_ar": "شخّص الخدمة أولاً قبل تغيير الجدار الناري.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "الخدمة متوقفة أو فاشلة"
+          ],
+          "actions": [
+            {
+              "title_ar": "سجل الخدمة",
+              "command": "journalctl -u <SERVICE> -b --no-pager",
+              "explanation_ar": "اعرض سبب الفشل.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-systemd-service"
+          ],
+          "safety_notes_ar": []
+        },
+        "port-config-result": {
+          "id": "port-config-result",
+          "type": "result",
+          "diagnosis_ar": "الخدمة تعمل لكن إعدادها لا يفتح المنفذ المتوقع",
+          "summary_ar": "راجع Port أو Listen أو Socket أو ملف الخدمة.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "منفذ مختلف",
+            "ميزة الشبكة غير مفعلة",
+            "Socket unit مختلفة"
+          ],
+          "actions": [
+            {
+              "title_ar": "عرض إعداد الوحدة",
+              "command": "systemctl cat <SERVICE>",
+              "explanation_ar": "راجع ExecStart.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "كل المنافذ",
+              "command": "sudo ss -tulpn",
+              "explanation_ar": "اعرف المنفذ الفعلي.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": []
+        },
+        "port-process-result": {
+          "id": "port-process-result",
+          "type": "result",
+          "diagnosis_ar": "لا توجد عملية تستمع على المنفذ",
+          "summary_ar": "حدد التطبيق الذي يفترض أن يوفر المنفذ وثبته أو شغله.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "الخدمة غير مثبتة",
+            "اسم المنفذ غير صحيح",
+            "التطبيق فشل قبل فتح socket"
+          ],
+          "actions": [
+            {
+              "title_ar": "بحث عن خدمة محتملة",
+              "command": "grep -Rni '<PORT>' /etc/systemd/system /usr/lib/systemd/system 2>/dev/null",
+              "explanation_ar": "قد يكشف إعداداً.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": []
+        },
+        "port-firewall-result": {
+          "id": "port-firewall-result",
+          "type": "result",
+          "diagnosis_ar": "firewalld يمنع المنفذ",
+          "summary_ar": "افتح المنفذ في المنطقة الصحيحة فقط، ثم أعد التحميل.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "القاعدة غير مضافة",
+            "تمت إضافتها إلى Zone أخرى"
+          ],
+          "actions": [
+            {
+              "title_ar": "المناطق النشطة",
+              "command": "sudo firewall-cmd --get-active-zones",
+              "explanation_ar": "حدد المنطقة.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "فتح المنفذ",
+              "command": "sudo firewall-cmd --permanent --add-port=<PORT>/<PROTOCOL>",
+              "explanation_ar": "أضف القاعدة.",
+              "risk": "high",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "إعادة التحميل",
+              "command": "sudo firewall-cmd --reload",
+              "explanation_ar": "طبّق التغيير.",
+              "risk": "medium",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "cmd-firewall-cmd",
+            "concept-firewalld"
+          ],
+          "safety_notes_ar": []
+        },
+        "port-app-result": {
+          "id": "port-app-result",
+          "type": "result",
+          "diagnosis_ar": "المسار إلى المنفذ مفتوح",
+          "summary_ar": "TCP يصل؛ إذا بقي العطل فالمشكلة في بروتوكول التطبيق أو الطلب أو TLS.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "طلب HTTP أو Host header خاطئ",
+            "TLS أو شهادة",
+            "مصادقة تطبيق"
+          ],
+          "actions": [
+            {
+              "title_ar": "اختبار التطبيق",
+              "command": "curl -Iv http://<HOST>:<PORT>",
+              "explanation_ar": "لخدمات HTTP.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "تفاصيل TLS",
+              "command": "openssl s_client -connect <HOST>:<PORT>",
+              "explanation_ar": "لخدمات TLS.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": []
+        },
+        "port-refused-result": {
+          "id": "port-refused-result",
+          "type": "result",
+          "diagnosis_ar": "الخادم يرفض الاتصال",
+          "summary_ar": "غالباً لا توجد عملية تستمع على عنوان الشبكة، أو Reject صريح.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "الخدمة توقفت بعد الفحص",
+            "الخدمة تستمع على عنوان مختلف",
+            "قاعدة Reject"
+          ],
+          "actions": [
+            {
+              "title_ar": "أعد فحص الاستماع",
+              "command": "sudo ss -tulpn | grep \":<PORT>\"",
+              "explanation_ar": "من الخادم.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": []
+        },
+        "port-external-result": {
+          "id": "port-external-result",
+          "type": "result",
+          "diagnosis_ar": "الجدار الناري الخارجي أو المسار يحجب المنفذ",
+          "summary_ar": "الخادم يستمع وقاعدته المحلية تسمح، لذا افحص Security Group وACL وNAT والجدار الوسيط.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Cloud Security Group",
+            "Firewall شبكة",
+            "NAT لا يحول المنفذ",
+            "Route غير صحيح"
+          ],
+          "actions": [
+            {
+              "title_ar": "التقاط وصول الحزم",
+              "command": "sudo tcpdump -ni any port <PORT>",
+              "explanation_ar": "هل تصل SYN إلى الخادم؟",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": []
+        }
+      },
+      "related_entity_id": "cmd-firewall-cmd"
+    },
+    {
+      "id": "selinux-denial",
+      "title_ar": "أشك أن SELinux يمنع الخدمة",
+      "summary_ar": "يثبت وجود AVC ثم يفحص السياق وBoolean والمنفذ والسياسة.",
+      "icon": "◉",
+      "category": "selinux",
+      "estimated_minutes": 15,
+      "difficulty": "advanced",
+      "keywords_ar": [
+        "selinux يمنع",
+        "avc denied",
+        "permission denied selinux",
+        "restorecon"
+      ],
+      "variables": [
+        {
+          "name": "PATH",
+          "label_ar": "المسار المتأثر",
+          "example": "/var/www/html",
+          "required": true
+        },
+        {
+          "name": "SERVICE",
+          "label_ar": "اسم الخدمة",
+          "example": "httpd",
+          "required": false
+        },
+        {
+          "name": "PORT",
+          "label_ar": "المنفذ إن وجد",
+          "example": "8080",
+          "required": false
+        },
+        {
+          "name": "PROTOCOL",
+          "label_ar": "البروتوكول",
+          "example": "tcp",
+          "required": false,
+          "default": "tcp"
+        },
+        {
+          "name": "BOOLEAN",
+          "label_ar": "اسم Boolean بعد تحديده",
+          "example": "httpd_can_network_connect",
+          "required": false
+        },
+        {
+          "name": "PORT_TYPE",
+          "label_ar": "نوع منفذ SELinux",
+          "example": "http_port_t",
+          "required": false
+        },
+        {
+          "name": "RETRY_COMMAND",
+          "label_ar": "الأمر الأصلي لإعادة الاختبار",
+          "example": "curl http://localhost",
+          "required": false
+        }
+      ],
+      "start_node": "se-status",
+      "max_steps": 6,
+      "nodes": {
+        "se-status": {
+          "id": "se-status",
+          "type": "check",
+          "title_ar": "فحص وضع SELinux",
+          "text_ar": "اعرض الوضع الحالي والسياسة.",
+          "command": "sestatus",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Current mode وسياسة SELinux.",
+          "choices": [
+            {
+              "id": "enforcing",
+              "label_ar": "Enforcing",
+              "next": "se-avc",
+              "tone": "positive"
+            },
+            {
+              "id": "permissive",
+              "label_ar": "Permissive",
+              "next": "se-permissive-result",
+              "tone": "warning"
+            },
+            {
+              "id": "disabled",
+              "label_ar": "Disabled",
+              "next": "se-disabled-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "se-avc": {
+          "id": "se-avc",
+          "type": "check",
+          "title_ar": "البحث عن أحداث AVC",
+          "text_ar": "أعد تنفيذ العملية ثم اعرض الرفض الحديث.",
+          "command": "sudo ausearch -m AVC,USER_AVC -ts recent",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "أحداث AVC أو نتيجة فارغة.",
+          "choices": [
+            {
+              "id": "found",
+              "label_ar": "يوجد رفض مرتبط",
+              "next": "se-context",
+              "tone": "danger"
+            },
+            {
+              "id": "none",
+              "label_ar": "لا يوجد AVC مرتبط",
+              "next": "se-not-selinux",
+              "tone": "normal"
+            }
+          ]
+        },
+        "se-context": {
+          "id": "se-context",
+          "type": "check",
+          "title_ar": "فحص سياق المسار",
+          "text_ar": "اعرض سياق الملف أو المجلد المتأثر.",
+          "command": "ls -Zd <PATH>",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "user:role:type:level.",
+          "choices": [
+            {
+              "id": "wrong",
+              "label_ar": "السياق مختلف عن المسار المتوقع",
+              "next": "se-restore-result",
+              "tone": "warning"
+            },
+            {
+              "id": "normal",
+              "label_ar": "السياق يبدو صحيحاً",
+              "next": "se-boolean",
+              "tone": "positive"
+            },
+            {
+              "id": "unknown",
+              "label_ar": "لا أعرف السياق الصحيح",
+              "next": "se-compare",
+              "tone": "normal"
+            }
+          ]
+        },
+        "se-compare": {
+          "id": "se-compare",
+          "type": "check",
+          "title_ar": "مقارنة السياق الافتراضي",
+          "text_ar": "اعرض ما يفترض أن يكون عليه السياق وفق السياسة.",
+          "command": "matchpathcon <PATH>",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "السياق الافتراضي للمسار.",
+          "choices": [
+            {
+              "id": "different",
+              "label_ar": "القيمة الافتراضية مختلفة",
+              "next": "se-restore-result",
+              "tone": "warning"
+            },
+            {
+              "id": "same",
+              "label_ar": "القيمة مطابقة",
+              "next": "se-boolean",
+              "tone": "positive"
+            }
+          ]
+        },
+        "se-boolean": {
+          "id": "se-boolean",
+          "type": "check",
+          "title_ar": "فحص Booleans المرتبطة بالخدمة",
+          "text_ar": "ابحث عن خيارات سياسة موثقة للخدمة.",
+          "command": "getsebool -a | grep -i <SERVICE>",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "قائمة Booleans محتملة.",
+          "choices": [
+            {
+              "id": "found-off",
+              "label_ar": "وجدت Boolean مناسباً وهو off",
+              "next": "se-boolean-result",
+              "tone": "warning"
+            },
+            {
+              "id": "none",
+              "label_ar": "لا يوجد Boolean واضح",
+              "next": "se-port",
+              "tone": "normal"
+            }
+          ]
+        },
+        "se-port": {
+          "id": "se-port",
+          "type": "check",
+          "title_ar": "فحص تصنيف المنفذ",
+          "text_ar": "إذا كانت الخدمة تستخدم منفذاً غير قياسي فاعرض تصنيفات المنافذ.",
+          "command": "sudo semanage port -l | grep -i <SERVICE>",
+          "explanation_ar": "",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "أنواع SELinux والمنافذ المرتبطة.",
+          "choices": [
+            {
+              "id": "wrong",
+              "label_ar": "المنفذ غير مصنف لنوع الخدمة",
+              "next": "se-port-result",
+              "tone": "warning"
+            },
+            {
+              "id": "normal",
+              "label_ar": "المنفذ مصنف أو لا توجد شبكة",
+              "next": "se-policy-result",
+              "tone": "normal"
+            }
+          ]
+        },
+        "se-permissive-result": {
+          "id": "se-permissive-result",
+          "type": "result",
+          "diagnosis_ar": "SELinux لا يمنع التنفيذ حالياً لكنه يسجل الرفض",
+          "summary_ar": "Permissive يسمح بالعملية؛ استخدم السجل لإصلاح السياسة قبل العودة إلى Enforcing.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "تم وضع النظام في Permissive للتشخيص",
+            "توجد مشكلة سياق أو سياسة لم تُصلح"
+          ],
+          "actions": [
+            {
+              "title_ar": "عرض AVC",
+              "command": "sudo ausearch -m AVC -ts recent",
+              "explanation_ar": "حدد السبب.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "diagnose-selinux-denial"
+          ],
+          "safety_notes_ar": [
+            "أعد Enforcing بعد إصلاح السبب واختباره."
+          ]
+        },
+        "se-disabled-result": {
+          "id": "se-disabled-result",
+          "type": "result",
+          "diagnosis_ar": "SELinux معطل؛ ليس هو سبب الرفض الحالي",
+          "summary_ar": "ابحث في صلاحيات Unix أو ACL أو التطبيق. إعادة تفعيل SELinux مشروع منفصل يحتاج تخطيطاً.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "SELinux معطل من الإقلاع"
+          ],
+          "actions": [
+            {
+              "title_ar": "فحص الصلاحيات",
+              "command": "ls -ld <PATH>",
+              "explanation_ar": "ابدأ بملكية وrwx.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-linux-permissions"
+          ],
+          "safety_notes_ar": []
+        },
+        "se-not-selinux": {
+          "id": "se-not-selinux",
+          "type": "result",
+          "diagnosis_ar": "لا يوجد دليل أن SELinux سبب المشكلة",
+          "summary_ar": "لا تعطل SELinux. انتقل إلى صلاحيات Unix وسجل الخدمة ونظام الملفات.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "صلاحيات أو ACL",
+            "خدمة تعمل بحساب مختلف",
+            "Filesystem read-only",
+            "خطأ تطبيق"
+          ],
+          "actions": [
+            {
+              "title_ar": "حالة الخدمة",
+              "command": "systemctl status <SERVICE> --no-pager -l",
+              "explanation_ar": "راجع الخطأ.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "الصلاحيات",
+              "command": "ls -ldZ <PATH>",
+              "explanation_ar": "راجع الملكية والسياق.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-linux-permissions"
+          ],
+          "safety_notes_ar": []
+        },
+        "se-restore-result": {
+          "id": "se-restore-result",
+          "type": "result",
+          "diagnosis_ar": "سياق الملف غير صحيح",
+          "summary_ar": "استعد السياق الافتراضي ثم أعد الاختبار.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "ملف نُقل من مسار آخر",
+            "تعديل سياق مؤقت باستخدام chcon"
+          ],
+          "actions": [
+            {
+              "title_ar": "استعادة السياق",
+              "command": "sudo restorecon -Rv <PATH>",
+              "explanation_ar": "يعيد القيمة المعرفة في السياسة.",
+              "risk": "medium",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [
+            {
+              "title_ar": "فحص السياق",
+              "command": "ls -Zd <PATH>",
+              "expected_result_ar": "مطابقة matchpathcon",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "إعادة الاختبار",
+              "command": "<RETRY_COMMAND>",
+              "expected_result_ar": "نجاح العملية دون AVC جديد",
+              "requires_sudo": false
+            }
+          ],
+          "related_entity_ids": [
+            "diagnose-selinux-denial"
+          ],
+          "safety_notes_ar": []
+        },
+        "se-boolean-result": {
+          "id": "se-boolean-result",
+          "type": "result",
+          "diagnosis_ar": "Boolean موثق قد يسمح بالسلوك المطلوب",
+          "summary_ar": "فعّل Boolean فقط إذا كان يطابق حاجة الخدمة فعلاً.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "الخدمة تحتاج اتصال شبكة أو قراءة مسار يسمح به Boolean"
+          ],
+          "actions": [
+            {
+              "title_ar": "تفعيل Boolean دائماً",
+              "command": "sudo setsebool -P <BOOLEAN> on",
+              "explanation_ar": "راجع وصف Boolean قبل التنفيذ.",
+              "risk": "high",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "diagnose-selinux-denial"
+          ],
+          "safety_notes_ar": [
+            "لا تفعّل Booleans عشوائياً."
+          ]
+        },
+        "se-port-result": {
+          "id": "se-port-result",
+          "type": "result",
+          "diagnosis_ar": "منفذ غير قياسي غير مصنف للخدمة",
+          "summary_ar": "أضف المنفذ إلى نوع SELinux الصحيح بدلاً من تعطيل الحماية.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "الخدمة انتقلت إلى منفذ مخصص"
+          ],
+          "actions": [
+            {
+              "title_ar": "إضافة تصنيف المنفذ",
+              "command": "sudo semanage port -a -t <PORT_TYPE> -p <PROTOCOL> <PORT>",
+              "explanation_ar": "استخدم النوع الصحيح.",
+              "risk": "high",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "diagnose-selinux-denial"
+          ],
+          "safety_notes_ar": []
+        },
+        "se-policy-result": {
+          "id": "se-policy-result",
+          "type": "result",
+          "diagnosis_ar": "الرفض يحتاج تحليلاً أدق للسياسة",
+          "summary_ar": "اجمع AVC كاملاً وحدد المصدر والهدف والفئة قبل إنشاء سياسة مخصصة.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "سلوك تطبيق غير مغطى بالسياسة الحالية",
+            "مسار مخصص يحتاج fcontext",
+            "سياسة طرف ثالث ناقصة"
+          ],
+          "actions": [
+            {
+              "title_ar": "تقرير مبسط",
+              "command": "sudo ausearch -m AVC -ts recent | audit2why",
+              "explanation_ar": "يفسر سبب الرفض.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "حفظ AVC",
+              "command": "sudo ausearch -m AVC -ts recent > /tmp/avc.txt",
+              "explanation_ar": "للمراجعة.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "diagnose-selinux-denial"
+          ],
+          "safety_notes_ar": [
+            "لا تطبق audit2allow مباشرة دون مراجعة القاعدة."
+          ]
+        }
+      },
+      "related_entity_id": "diagnose-selinux-denial"
+    }
+  ]
+}
