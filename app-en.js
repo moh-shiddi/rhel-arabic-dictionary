@@ -334,6 +334,19 @@ class KnowledgeEngineApp {
       button.addEventListener("click", () => this.useQuery(button.dataset.query));
     });
 
+
+    document.querySelectorAll(".hero-rhcsa-button[data-open-entity]").forEach(button => {
+      button.addEventListener("click", () => {
+        const entityId = button.dataset.openEntity;
+        const entity = this.entityById.get(entityId);
+        if (entity) {
+          this.openEntity(entity);
+          return;
+        }
+        location.hash = `entity=${encodeURIComponent(entityId)}`;
+      });
+    });
+
     document.querySelectorAll("[data-type-view]").forEach(button => {
       button.addEventListener("click", () => this.setView(button.dataset.typeView, true));
     });
