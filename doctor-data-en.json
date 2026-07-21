@@ -1,0 +1,3959 @@
+{
+  "schema_version": "1.0.0",
+  "project": "RHEL Linux Doctor",
+  "language": "en",
+  "disclaimer_ar": "Linux Doctor provides diagnostic guidance and commands to run manually. It never executes commands on your system.",
+  "categories": {
+    "services": "Services and systemd",
+    "ssh": "SSH and Remote Access",
+    "storage": "Storage and Disks",
+    "packages": "Packages and Software",
+    "network": "Networking and Connectivity",
+    "processes": "Processes and Resources",
+    "permissions": "Permissions and Ownership",
+    "firewall": "Firewall",
+    "selinux": "SELinux"
+  },
+  "flows": [
+    {
+      "id": "service-failed",
+      "title_ar": "A Service Is Failed or Not Running",
+      "summary_ar": "Diagnose systemd status, logs, configuration, dependencies, ports, and permissions.",
+      "icon": "⚙",
+      "category": "services",
+      "estimated_minutes": 12,
+      "difficulty": "intermediate",
+      "keywords_ar": [
+        "A Service Is Failed or Not Running",
+        "Diagnose systemd status, logs, configuration, dependencies, ports, and permissions."
+      ],
+      "variables": [
+        {
+          "name": "SERVICE",
+          "label_ar": "Service name",
+          "example": "nginx",
+          "required": true
+        },
+        {
+          "name": "PATH",
+          "label_ar": "Path",
+          "example": "/srv/app",
+          "required": false
+        },
+        {
+          "name": "OTHER_SERVICE",
+          "label_ar": "OTHER_SERVICE",
+          "example": "httpd",
+          "required": false
+        },
+        {
+          "name": "DEPENDENCY",
+          "label_ar": "DEPENDENCY",
+          "example": "network-online.target",
+          "required": false
+        }
+      ],
+      "start_node": "service-status",
+      "max_steps": 6,
+      "nodes": {
+        "service-status": {
+          "id": "service-status",
+          "type": "check",
+          "title_ar": "Show Service Status",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "systemctl status <SERVICE> --no-pager -l",
+          "explanation_ar": "Shows the current unit state and recent messages.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "active",
+              "label_ar": "The service is active, but the problem remains",
+              "next": "service-active",
+              "tone": "positive"
+            },
+            {
+              "id": "failed",
+              "label_ar": "The command or service failed",
+              "next": "service-logs",
+              "tone": "danger"
+            },
+            {
+              "id": "inactive",
+              "label_ar": "The service is inactive or stopped",
+              "next": "service-start",
+              "tone": "warning"
+            },
+            {
+              "id": "not-found",
+              "label_ar": "The unit was not found",
+              "next": "service-not-found",
+              "tone": "warning"
+            }
+          ]
+        },
+        "service-start": {
+          "id": "service-start",
+          "type": "check",
+          "title_ar": "Start a Service",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "sudo systemctl start <SERVICE>",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "high",
+          "requires_sudo": true,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "started",
+              "label_ar": "The service started successfully",
+              "next": "service-fixed",
+              "tone": "positive"
+            },
+            {
+              "id": "failed",
+              "label_ar": "The command or service failed",
+              "next": "service-logs",
+              "tone": "danger"
+            },
+            {
+              "id": "denied",
+              "label_ar": "Administrative permission is denied",
+              "next": "service-sudo",
+              "tone": "warning"
+            }
+          ]
+        },
+        "service-logs": {
+          "id": "service-logs",
+          "type": "check",
+          "title_ar": "View a Service Log",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "journalctl -u <SERVICE> -b --no-pager -n 100",
+          "explanation_ar": "Reads journal entries for the selected service.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "config",
+              "label_ar": "The output points to a configuration or syntax error",
+              "next": "service-config",
+              "tone": "warning"
+            },
+            {
+              "id": "port",
+              "label_ar": "The output points to a port conflict",
+              "next": "service-port",
+              "tone": "warning"
+            },
+            {
+              "id": "permission",
+              "label_ar": "The output contains Permission denied",
+              "next": "service-selinux",
+              "tone": "warning"
+            },
+            {
+              "id": "dependency",
+              "label_ar": "The output points to a failed dependency",
+              "next": "service-dependency",
+              "tone": "warning"
+            },
+            {
+              "id": "unclear",
+              "label_ar": "The message is unclear or no useful error is shown",
+              "next": "service-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "service-config": {
+          "id": "service-config",
+          "type": "check",
+          "title_ar": "Inspect the Unit Definition",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "systemctl cat <SERVICE>",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "fixed",
+              "label_ar": "The issue has been corrected",
+              "next": "service-restart",
+              "tone": "positive"
+            },
+            {
+              "id": "unknown",
+              "label_ar": "I am not sure",
+              "next": "service-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "service-port": {
+          "id": "service-port",
+          "type": "check",
+          "title_ar": "Run ss",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "sudo ss -tulpn",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "conflict",
+              "label_ar": "Another process is using the resource",
+              "next": "service-port-result",
+              "tone": "danger"
+            },
+            {
+              "id": "none",
+              "label_ar": "No matching result was found",
+              "next": "service-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "service-selinux": {
+          "id": "service-selinux",
+          "type": "check",
+          "title_ar": "Review Recent SELinux Denials",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "sudo ausearch -m AVC,USER_AVC -ts recent",
+          "explanation_ar": "Reads recent AVC events from the audit log.",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "avc",
+              "label_ar": "A related AVC denial is present",
+              "next": "service-selinux-result",
+              "tone": "danger"
+            },
+            {
+              "id": "none",
+              "label_ar": "No matching result was found",
+              "next": "service-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "service-dependency": {
+          "id": "service-dependency",
+          "type": "check",
+          "title_ar": "List Failed Services",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "systemctl --failed",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "found",
+              "label_ar": "A relevant result was found",
+              "next": "service-dependency-result",
+              "tone": "warning"
+            },
+            {
+              "id": "none",
+              "label_ar": "No matching result was found",
+              "next": "service-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "service-restart": {
+          "id": "service-restart",
+          "type": "check",
+          "title_ar": "Restart a Service",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "sudo systemctl restart <SERVICE>",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "high",
+          "requires_sudo": true,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "success",
+              "label_ar": "The operation succeeded",
+              "next": "service-fixed",
+              "tone": "positive"
+            },
+            {
+              "id": "failed",
+              "label_ar": "The command or service failed",
+              "next": "service-deep",
+              "tone": "danger"
+            }
+          ]
+        },
+        "service-active": {
+          "id": "service-active",
+          "type": "result",
+          "diagnosis_ar": "The Service Is Active",
+          "summary_ar": "The evidence points to the service is active. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "Invalid service configuration.",
+            "A dependency, permission, or port conflict prevents startup."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run ss",
+              "command": "sudo ss -tulpn",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "Follow a Service Log",
+              "command": "journalctl -fu <SERVICE>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [
+            {
+              "title_ar": "Verify the Service Is Active",
+              "command": "systemctl is-active <SERVICE>",
+              "expected_result_ar": "The command returns active.",
+              "requires_sudo": false
+            }
+          ],
+          "related_entity_ids": [
+            "troubleshoot-systemd-service"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "service-not-found": {
+          "id": "service-not-found",
+          "type": "result",
+          "diagnosis_ar": "The systemd Unit Was Not Found",
+          "summary_ar": "The evidence points to the systemd unit was not found. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Invalid service configuration.",
+            "A dependency, permission, or port conflict prevents startup."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run systemctl",
+              "command": "systemctl list-unit-files | grep -i '<SERVICE>'",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Search for a Package",
+              "command": "dnf search <SERVICE>",
+              "explanation_ar": "Searches enabled repositories for matching packages.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "cmd-systemctl",
+            "install-package-dnf"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "service-fixed": {
+          "id": "service-fixed",
+          "type": "result",
+          "diagnosis_ar": "The Service Is Working",
+          "summary_ar": "The evidence points to the service is working. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Invalid service configuration.",
+            "A dependency, permission, or port conflict prevents startup."
+          ],
+          "actions": [
+            {
+              "title_ar": "Enable a Service at Boot",
+              "command": "sudo systemctl enable <SERVICE>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "medium",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [
+            {
+              "title_ar": "Verify the Service Is Active",
+              "command": "systemctl is-active <SERVICE>",
+              "expected_result_ar": "The command returns active.",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Check Whether a Service Is Enabled",
+              "command": "systemctl is-enabled <SERVICE>",
+              "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+              "requires_sudo": false
+            }
+          ],
+          "related_entity_ids": [
+            "troubleshoot-systemd-service"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "service-sudo": {
+          "id": "service-sudo",
+          "type": "result",
+          "diagnosis_ar": "Administrative Access Is Required",
+          "summary_ar": "The evidence points to administrative access is required. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Invalid service configuration.",
+            "A dependency, permission, or port conflict prevents startup."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run -l",
+              "command": "sudo -l",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "create-user-with-admin-access"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "service-port-result": {
+          "id": "service-port-result",
+          "type": "result",
+          "diagnosis_ar": "A Port Conflict Prevents Startup",
+          "summary_ar": "The evidence points to a port conflict prevents startup. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Invalid service configuration.",
+            "A dependency, permission, or port conflict prevents startup."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run ss",
+              "command": "sudo ss -tulpn",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "Show Service Status",
+              "command": "systemctl status <OTHER_SERVICE>",
+              "explanation_ar": "Shows the current unit state and recent messages.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-systemd-service"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "service-selinux-result": {
+          "id": "service-selinux-result",
+          "type": "result",
+          "diagnosis_ar": "SELinux or File Access Prevents Startup",
+          "summary_ar": "The evidence points to selinux or file access prevents startup. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Invalid service configuration.",
+            "A dependency, permission, or port conflict prevents startup."
+          ],
+          "actions": [
+            {
+              "title_ar": "Review Recent SELinux Denials",
+              "command": "sudo ausearch -m AVC,USER_AVC -ts recent",
+              "explanation_ar": "Reads recent AVC events from the audit log.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "Restore SELinux File Contexts",
+              "command": "sudo restorecon -Rv <PATH>",
+              "explanation_ar": "Restores the policy-defined file context.",
+              "risk": "medium",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "diagnose-selinux-denial",
+            "concept-selinux"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "service-dependency-result": {
+          "id": "service-dependency-result",
+          "type": "result",
+          "diagnosis_ar": "A Required Dependency Failed",
+          "summary_ar": "The evidence points to a required dependency failed. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Invalid service configuration.",
+            "A dependency, permission, or port conflict prevents startup."
+          ],
+          "actions": [
+            {
+              "title_ar": "Show Service Status",
+              "command": "systemctl status <DEPENDENCY> --no-pager -l",
+              "explanation_ar": "Shows the current unit state and recent messages.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "View a Service Log",
+              "command": "journalctl -u <DEPENDENCY> -b --no-pager",
+              "explanation_ar": "Reads journal entries for the selected service.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-systemd-service"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "service-deep": {
+          "id": "service-deep",
+          "type": "result",
+          "diagnosis_ar": "Deep",
+          "summary_ar": "The evidence points to deep. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "Invalid service configuration.",
+            "A dependency, permission, or port conflict prevents startup."
+          ],
+          "actions": [
+            {
+              "title_ar": "Show Service Status",
+              "command": "systemctl status <SERVICE> --no-pager -l",
+              "explanation_ar": "Shows the current unit state and recent messages.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "View a Service Log",
+              "command": "journalctl -u <SERVICE> -b --no-pager -n 200",
+              "explanation_ar": "Reads journal entries for the selected service.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Inspect the Unit Definition",
+              "command": "systemctl cat <SERVICE>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-systemd-service"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        }
+      },
+      "related_entity_id": "troubleshoot-systemd-service"
+    },
+    {
+      "id": "ssh-connection",
+      "title_ar": "Unable to Connect over SSH",
+      "summary_ar": "Separate network, TCP port, sshd, host-key, and authentication failures.",
+      "icon": "⌁",
+      "category": "ssh",
+      "estimated_minutes": 15,
+      "difficulty": "intermediate",
+      "keywords_ar": [
+        "Unable to Connect over SSH",
+        "Separate network, TCP port, sshd, host-key, and authentication failures."
+      ],
+      "variables": [
+        {
+          "name": "HOST",
+          "label_ar": "Host name or IP address",
+          "example": "192.168.1.10",
+          "required": true
+        },
+        {
+          "name": "USER",
+          "label_ar": "User name",
+          "example": "admin",
+          "required": true
+        },
+        {
+          "name": "PORT",
+          "label_ar": "Port number",
+          "example": "22",
+          "required": true,
+          "default": "22"
+        }
+      ],
+      "start_node": "ssh-reach",
+      "max_steps": 6,
+      "nodes": {
+        "ssh-reach": {
+          "id": "ssh-reach",
+          "type": "question",
+          "title_ar": "Reach",
+          "text_ar": "Choose the answer that best describes the current condition.",
+          "help_ar": "Use available evidence rather than guessing when possible.",
+          "choices": [
+            {
+              "id": "yes",
+              "label_ar": "Yes",
+              "next": "ssh-port",
+              "tone": "positive"
+            },
+            {
+              "id": "no",
+              "label_ar": "No",
+              "next": "ssh-route",
+              "tone": "danger"
+            },
+            {
+              "id": "unknown",
+              "label_ar": "I am not sure",
+              "next": "ssh-port",
+              "tone": "normal"
+            }
+          ]
+        },
+        "ssh-route": {
+          "id": "ssh-route",
+          "type": "check",
+          "title_ar": "Run ip",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "ip route get <HOST>",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "route",
+              "label_ar": "A valid route is present",
+              "next": "ssh-port",
+              "tone": "positive"
+            },
+            {
+              "id": "no-route",
+              "label_ar": "No valid route is available",
+              "next": "ssh-network-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "ssh-port": {
+          "id": "ssh-port",
+          "type": "check",
+          "title_ar": "Run nc",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "nc -vz <HOST> <PORT>",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "open",
+              "label_ar": "The port or connection is open",
+              "next": "ssh-verbose",
+              "tone": "positive"
+            },
+            {
+              "id": "refused",
+              "label_ar": "Connection refused",
+              "next": "ssh-refused",
+              "tone": "danger"
+            },
+            {
+              "id": "timeout",
+              "label_ar": "The connection timed out",
+              "next": "ssh-timeout",
+              "tone": "danger"
+            },
+            {
+              "id": "nc-missing",
+              "label_ar": "The nc command is not installed",
+              "next": "ssh-curl-port",
+              "tone": "normal"
+            }
+          ]
+        },
+        "ssh-curl-port": {
+          "id": "ssh-curl-port",
+          "type": "check",
+          "title_ar": "Run timeout",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "timeout 5 bash -c \"</dev/tcp/<HOST>/<PORT>\"",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "open",
+              "label_ar": "The port or connection is open",
+              "next": "ssh-verbose",
+              "tone": "positive"
+            },
+            {
+              "id": "failed",
+              "label_ar": "The command or service failed",
+              "next": "ssh-timeout",
+              "tone": "danger"
+            }
+          ]
+        },
+        "ssh-verbose": {
+          "id": "ssh-verbose",
+          "type": "check",
+          "title_ar": "Run SSH in Verbose Mode",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "ssh -vvv -p <PORT> <USER>@<HOST>",
+          "explanation_ar": "Shows connection, key exchange, and authentication stages.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "success",
+              "label_ar": "The operation succeeded",
+              "next": "ssh-fixed",
+              "tone": "positive"
+            },
+            {
+              "id": "permission",
+              "label_ar": "The output contains Permission denied",
+              "next": "ssh-auth",
+              "tone": "danger"
+            },
+            {
+              "id": "hostkey",
+              "label_ar": "Host-key verification failed",
+              "next": "ssh-hostkey",
+              "tone": "warning"
+            },
+            {
+              "id": "disconnect",
+              "label_ar": "The server closes the session after connecting",
+              "next": "ssh-server-logs",
+              "tone": "warning"
+            },
+            {
+              "id": "other",
+              "label_ar": "A different error appears",
+              "next": "ssh-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "ssh-server-logs": {
+          "id": "ssh-server-logs",
+          "type": "check",
+          "title_ar": "Run journalctl",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "sudo journalctl -u sshd -b --no-pager -n 100",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "config",
+              "label_ar": "The output points to a configuration or syntax error",
+              "next": "ssh-server-result",
+              "tone": "warning"
+            },
+            {
+              "id": "selinux",
+              "label_ar": "The evidence points to SELinux",
+              "next": "ssh-selinux-result",
+              "tone": "warning"
+            },
+            {
+              "id": "unclear",
+              "label_ar": "The message is unclear or no useful error is shown",
+              "next": "ssh-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "ssh-network-result": {
+          "id": "ssh-network-result",
+          "type": "result",
+          "diagnosis_ar": "The Server Is Not Reachable",
+          "summary_ar": "The evidence points to the server is not reachable. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "The network path or SSH port is unavailable.",
+            "sshd or authentication is failing."
+          ],
+          "actions": [
+            {
+              "title_ar": "Show Network Addresses",
+              "command": "ip address show",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Show the Routing Table",
+              "command": "ip route show",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "ssh-refused": {
+          "id": "ssh-refused",
+          "type": "result",
+          "diagnosis_ar": "The SSH Port Refuses Connections",
+          "summary_ar": "The evidence points to the ssh port refuses connections. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "The network path or SSH port is unavailable.",
+            "sshd or authentication is failing."
+          ],
+          "actions": [
+            {
+              "title_ar": "Show Service Status",
+              "command": "sudo systemctl status sshd",
+              "explanation_ar": "Shows the current unit state and recent messages.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "Run ss",
+              "command": "sudo ss -tlnp | grep sshd",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-ssh-connection",
+            "legacy-svc-start"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "ssh-timeout": {
+          "id": "ssh-timeout",
+          "type": "result",
+          "diagnosis_ar": "The SSH Connection Times Out",
+          "summary_ar": "The evidence points to the ssh connection times out. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "The network path or SSH port is unavailable.",
+            "sshd or authentication is failing."
+          ],
+          "actions": [
+            {
+              "title_ar": "Show Firewall Rules",
+              "command": "sudo firewall-cmd --list-all",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "Run traceroute",
+              "command": "traceroute <HOST>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-ssh-connection",
+            "cmd-firewall-cmd"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "ssh-auth": {
+          "id": "ssh-auth",
+          "type": "result",
+          "diagnosis_ar": "SSH Authentication Failed",
+          "summary_ar": "The evidence points to ssh authentication failed. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "The network path or SSH port is unavailable.",
+            "sshd or authentication is failing."
+          ],
+          "actions": [
+            {
+              "title_ar": "Show User Identity and Groups",
+              "command": "id <USER>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Run ls",
+              "command": "ls -ld ~/.ssh && ls -l ~/.ssh/authorized_keys",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Run journalctl",
+              "command": "sudo journalctl -u sshd -b --no-pager -n 100",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-ssh-connection",
+            "concept-ssh"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "ssh-hostkey": {
+          "id": "ssh-hostkey",
+          "type": "result",
+          "diagnosis_ar": "The Saved SSH Host Key Does Not Match",
+          "summary_ar": "The evidence points to the saved ssh host key does not match. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "The network path or SSH port is unavailable.",
+            "sshd or authentication is failing."
+          ],
+          "actions": [
+            {
+              "title_ar": "Generate an SSH Key",
+              "command": "ssh-keygen -F <HOST>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Generate an SSH Key",
+              "command": "ssh-keygen -R <HOST>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "medium",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "cmd-ssh",
+            "concept-ssh"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "ssh-server-result": {
+          "id": "ssh-server-result",
+          "type": "result",
+          "diagnosis_ar": "sshd or Its Server Configuration Is Failing",
+          "summary_ar": "The evidence points to sshd or its server configuration is failing. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "The network path or SSH port is unavailable.",
+            "sshd or authentication is failing."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run sshd",
+              "command": "sudo sshd -t",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "Run sshd",
+              "command": "sudo sshd -T",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-ssh-connection"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "ssh-selinux-result": {
+          "id": "ssh-selinux-result",
+          "type": "result",
+          "diagnosis_ar": "SELinux Is Blocking SSH",
+          "summary_ar": "The evidence points to selinux is blocking ssh. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "The network path or SSH port is unavailable.",
+            "sshd or authentication is failing."
+          ],
+          "actions": [
+            {
+              "title_ar": "Restore SELinux File Contexts",
+              "command": "sudo restorecon -Rv /home/<USER>",
+              "explanation_ar": "Restores the policy-defined file context.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "Review Recent SELinux Denials",
+              "command": "sudo ausearch -m AVC -ts recent",
+              "explanation_ar": "Reads recent AVC events from the audit log.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "diagnose-selinux-denial",
+            "troubleshoot-ssh-connection"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "ssh-fixed": {
+          "id": "ssh-fixed",
+          "type": "result",
+          "diagnosis_ar": "SSH Access Is Working",
+          "summary_ar": "The evidence points to ssh access is working. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "The network path or SSH port is unavailable.",
+            "sshd or authentication is failing."
+          ],
+          "actions": [
+            {
+              "title_ar": "Connect to SSH on a Custom Port",
+              "command": "ssh -p <PORT> <USER>@<HOST> true",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "cmd-ssh"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "ssh-deep": {
+          "id": "ssh-deep",
+          "type": "result",
+          "diagnosis_ar": "Deep",
+          "summary_ar": "The evidence points to deep. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "The network path or SSH port is unavailable.",
+            "sshd or authentication is failing."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run SSH in Verbose Mode",
+              "command": "ssh -vvv -p <PORT> <USER>@<HOST>",
+              "explanation_ar": "Shows connection, key exchange, and authentication stages.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Run journalctl",
+              "command": "sudo journalctl -fu sshd",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-ssh-connection"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        }
+      },
+      "related_entity_id": "troubleshoot-ssh-connection"
+    },
+    {
+      "id": "disk-full",
+      "title_ar": "Filesystem Full or No Space Left",
+      "summary_ar": "Distinguish capacity, inode exhaustion, large files, and deleted-open files.",
+      "icon": "◫",
+      "category": "storage",
+      "estimated_minutes": 12,
+      "difficulty": "intermediate",
+      "keywords_ar": [
+        "Filesystem Full or No Space Left",
+        "Distinguish capacity, inode exhaustion, large files, and deleted-open files."
+      ],
+      "variables": [
+        {
+          "name": "PATH",
+          "label_ar": "Path",
+          "example": "/var",
+          "required": true,
+          "default": "/var"
+        },
+        {
+          "name": "PID",
+          "label_ar": "Process ID",
+          "example": "1234",
+          "required": false
+        },
+        {
+          "name": "SERVICE",
+          "label_ar": "Service name",
+          "example": "rsyslog",
+          "required": false
+        }
+      ],
+      "start_node": "disk-df",
+      "max_steps": 6,
+      "nodes": {
+        "disk-df": {
+          "id": "disk-df",
+          "type": "check",
+          "title_ar": "Show Filesystem Disk Usage",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "df -hT",
+          "explanation_ar": "Displays filesystem capacity and utilization.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "space",
+              "label_ar": "Filesystem capacity is high",
+              "next": "disk-inodes",
+              "tone": "warning"
+            },
+            {
+              "id": "inode",
+              "label_ar": "Capacity looks normal, but inodes may be exhausted",
+              "next": "disk-inodes",
+              "tone": "warning"
+            },
+            {
+              "id": "normal",
+              "label_ar": "The result looks normal",
+              "next": "disk-not-full",
+              "tone": "normal"
+            }
+          ]
+        },
+        "disk-inodes": {
+          "id": "disk-inodes",
+          "type": "check",
+          "title_ar": "Check Inode Usage",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "df -ih",
+          "explanation_ar": "Checks whether inode capacity is exhausted.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "full",
+              "label_ar": "The value is critically high",
+              "next": "disk-inode-result",
+              "tone": "danger"
+            },
+            {
+              "id": "normal",
+              "label_ar": "The result looks normal",
+              "next": "disk-du",
+              "tone": "positive"
+            }
+          ]
+        },
+        "disk-du": {
+          "id": "disk-du",
+          "type": "check",
+          "title_ar": "Run du",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "sudo du -xhd1 <PATH> | sort -h",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "large-dir",
+              "label_ar": "A large directory was identified",
+              "next": "disk-files",
+              "tone": "warning"
+            },
+            {
+              "id": "mismatch",
+              "label_ar": "The values do not match expectations",
+              "next": "disk-open-deleted",
+              "tone": "warning"
+            },
+            {
+              "id": "permission",
+              "label_ar": "The output contains Permission denied",
+              "next": "disk-sudo-result",
+              "tone": "normal"
+            }
+          ]
+        },
+        "disk-files": {
+          "id": "disk-files",
+          "type": "check",
+          "title_ar": "Run find",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "sudo find <PATH> -xdev -type f -size +500M -printf '%s %p\\n' | sort -n",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "logs",
+              "label_ar": "Logs are consuming the space",
+              "next": "disk-logs-result",
+              "tone": "warning"
+            },
+            {
+              "id": "data",
+              "label_ar": "Application or user data is consuming the space",
+              "next": "disk-data-result",
+              "tone": "warning"
+            },
+            {
+              "id": "none",
+              "label_ar": "No matching result was found",
+              "next": "disk-open-deleted",
+              "tone": "normal"
+            }
+          ]
+        },
+        "disk-open-deleted": {
+          "id": "disk-open-deleted",
+          "type": "check",
+          "title_ar": "Find Deleted Files Still Open",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "sudo lsof +L1",
+          "explanation_ar": "Finds processes that still hold deleted files open.",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "found",
+              "label_ar": "A relevant result was found",
+              "next": "disk-deleted-result",
+              "tone": "danger"
+            },
+            {
+              "id": "none",
+              "label_ar": "No matching result was found",
+              "next": "disk-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "disk-not-full": {
+          "id": "disk-not-full",
+          "type": "result",
+          "diagnosis_ar": "The Reported Problem Is Not Filesystem Capacity",
+          "summary_ar": "The evidence points to the reported problem is not filesystem capacity. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "Filesystem capacity or inodes are exhausted.",
+            "Logs, data, or deleted-open files consume space."
+          ],
+          "actions": [
+            {
+              "title_ar": "List Mount Points",
+              "command": "findmnt",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Show Kernel Warnings and Errors",
+              "command": "dmesg --level=err,warn",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "disk-inode-result": {
+          "id": "disk-inode-result",
+          "type": "result",
+          "diagnosis_ar": "The Filesystem Has Exhausted Its Inodes",
+          "summary_ar": "The evidence points to the filesystem has exhausted its inodes. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Filesystem capacity or inodes are exhausted.",
+            "Logs, data, or deleted-open files consume space."
+          ],
+          "actions": [
+            {
+              "title_ar": "Remove Duplicate Lines",
+              "command": "sudo find <PATH> -xdev -type f -printf '%h\\n' | sort | uniq -c | sort -n | tail",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [
+            {
+              "title_ar": "Check Inode Usage",
+              "command": "df -ih",
+              "expected_result_ar": "Filesystem usage is displayed.",
+              "requires_sudo": false
+            }
+          ],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "disk-logs-result": {
+          "id": "disk-logs-result",
+          "type": "result",
+          "diagnosis_ar": "Logs Are Consuming Excessive Space",
+          "summary_ar": "The evidence points to logs are consuming excessive space. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Filesystem capacity or inodes are exhausted.",
+            "Logs, data, or deleted-open files consume space."
+          ],
+          "actions": [
+            {
+              "title_ar": "View the System Journal",
+              "command": "journalctl --disk-usage",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Run logrotate",
+              "command": "sudo logrotate -d /etc/logrotate.conf",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "Run du",
+              "command": "sudo du -sh /var/log/* | sort -h",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "disk-data-result": {
+          "id": "disk-data-result",
+          "type": "result",
+          "diagnosis_ar": "Application or User Data Is Consuming Space",
+          "summary_ar": "The evidence points to application or user data is consuming space. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Filesystem capacity or inodes are exhausted.",
+            "Logs, data, or deleted-open files consume space."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run find",
+              "command": "sudo find <PATH> -xdev -type f -size +500M -printf \"%TY-%Tm-%Td %s %p\\n\" | sort",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "disk-deleted-result": {
+          "id": "disk-deleted-result",
+          "type": "result",
+          "diagnosis_ar": "Deleted Open Files Still Consume Space",
+          "summary_ar": "The evidence points to deleted open files still consume space. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Filesystem capacity or inodes are exhausted.",
+            "Logs, data, or deleted-open files consume space."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run ps",
+              "command": "ps -fp <PID>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Restart a Service",
+              "command": "sudo systemctl restart <SERVICE>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "high",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [
+            {
+              "title_ar": "Show Filesystem Disk Usage",
+              "command": "df -hT",
+              "expected_result_ar": "Filesystem usage is displayed.",
+              "requires_sudo": false
+            }
+          ],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "disk-sudo-result": {
+          "id": "disk-sudo-result",
+          "type": "result",
+          "diagnosis_ar": "Additional Privileges Are Required",
+          "summary_ar": "The evidence points to additional privileges are required. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Filesystem capacity or inodes are exhausted.",
+            "Logs, data, or deleted-open files consume space."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run du",
+              "command": "sudo du -xhd1 <PATH> | sort -h",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "disk-deep": {
+          "id": "disk-deep",
+          "type": "result",
+          "diagnosis_ar": "Deep",
+          "summary_ar": "The evidence points to deep. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "Filesystem capacity or inodes are exhausted.",
+            "Logs, data, or deleted-open files consume space."
+          ],
+          "actions": [
+            {
+              "title_ar": "List Mount Points",
+              "command": "findmnt",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Run lvs",
+              "command": "sudo lvs -a -o +devices,data_percent,metadata_percent",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        }
+      },
+      "related_entity_id": "find-and-clean-large-files"
+    },
+    {
+      "id": "package-install",
+      "title_ar": "DNF Cannot Install a Package",
+      "summary_ar": "Check repositories, package names, dependencies, signatures, networking, and space.",
+      "icon": "⬡",
+      "category": "packages",
+      "estimated_minutes": 10,
+      "difficulty": "beginner",
+      "keywords_ar": [
+        "DNF Cannot Install a Package",
+        "Check repositories, package names, dependencies, signatures, networking, and space."
+      ],
+      "variables": [
+        {
+          "name": "PACKAGE",
+          "label_ar": "Package name",
+          "example": "nginx",
+          "required": true
+        },
+        {
+          "name": "COMMAND",
+          "label_ar": "Command",
+          "example": "semanage",
+          "required": false
+        }
+      ],
+      "start_node": "pkg-repos",
+      "max_steps": 4,
+      "nodes": {
+        "pkg-repos": {
+          "id": "pkg-repos",
+          "type": "check",
+          "title_ar": "List Enabled Repositories",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "dnf repolist",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "yes",
+              "label_ar": "Yes",
+              "next": "pkg-search",
+              "tone": "positive"
+            },
+            {
+              "id": "none",
+              "label_ar": "No matching result was found",
+              "next": "pkg-repo-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "pkg-search": {
+          "id": "pkg-search",
+          "type": "check",
+          "title_ar": "Search for a Package",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "dnf search <PACKAGE>",
+          "explanation_ar": "Searches enabled repositories for matching packages.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "found",
+              "label_ar": "A relevant result was found",
+              "next": "pkg-install",
+              "tone": "positive"
+            },
+            {
+              "id": "not-found",
+              "label_ar": "The unit was not found",
+              "next": "pkg-name-result",
+              "tone": "warning"
+            },
+            {
+              "id": "network",
+              "label_ar": "The output points to a network problem",
+              "next": "pkg-network-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "pkg-install": {
+          "id": "pkg-install",
+          "type": "check",
+          "title_ar": "Install a Package",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "sudo dnf install <PACKAGE>",
+          "explanation_ar": "Installs the package and resolves its dependencies.",
+          "risk": "medium",
+          "requires_sudo": true,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "success",
+              "label_ar": "The operation succeeded",
+              "next": "pkg-fixed",
+              "tone": "positive"
+            },
+            {
+              "id": "no-match",
+              "label_ar": "No matching package was found",
+              "next": "pkg-name-result",
+              "tone": "warning"
+            },
+            {
+              "id": "deps",
+              "label_ar": "Dependencies cannot be resolved",
+              "next": "pkg-deps-result",
+              "tone": "danger"
+            },
+            {
+              "id": "gpg",
+              "label_ar": "Signature or GPG verification failed",
+              "next": "pkg-gpg-result",
+              "tone": "danger"
+            },
+            {
+              "id": "network",
+              "label_ar": "The output points to a network problem",
+              "next": "pkg-network-result",
+              "tone": "danger"
+            },
+            {
+              "id": "space",
+              "label_ar": "Filesystem capacity is high",
+              "next": "pkg-space-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "pkg-repo-result": {
+          "id": "pkg-repo-result",
+          "type": "result",
+          "diagnosis_ar": "A Repository Is Unavailable or Misconfigured",
+          "summary_ar": "The evidence points to a repository is unavailable or misconfigured. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "A repository, package name, dependency, signature, network path, or space check failed."
+          ],
+          "actions": [
+            {
+              "title_ar": "Show Subscription Status",
+              "command": "sudo subscription-manager status",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "List Enabled Repositories",
+              "command": "dnf repolist --all",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "cmd-dnf",
+            "install-package-dnf"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "pkg-name-result": {
+          "id": "pkg-name-result",
+          "type": "result",
+          "diagnosis_ar": "The Package Name or Repository Is Incorrect",
+          "summary_ar": "The evidence points to the package name or repository is incorrect. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "A repository, package name, dependency, signature, network path, or space check failed."
+          ],
+          "actions": [
+            {
+              "title_ar": "Search for a Package",
+              "command": "dnf search <PACKAGE>",
+              "explanation_ar": "Searches enabled repositories for matching packages.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Find the Package That Provides a File",
+              "command": "dnf provides '*/<COMMAND>'",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "cmd-dnf"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "pkg-deps-result": {
+          "id": "pkg-deps-result",
+          "type": "result",
+          "diagnosis_ar": "Package Dependencies Cannot Be Resolved",
+          "summary_ar": "The evidence points to package dependencies cannot be resolved. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "A repository, package name, dependency, signature, network path, or space check failed."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run dnf",
+              "command": "sudo dnf check",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "Install a Package",
+              "command": "sudo dnf install <PACKAGE> --assumeno",
+              "explanation_ar": "Installs the package and resolves its dependencies.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "cmd-dnf"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "pkg-gpg-result": {
+          "id": "pkg-gpg-result",
+          "type": "result",
+          "diagnosis_ar": "Package Signature Verification Failed",
+          "summary_ar": "The evidence points to package signature verification failed. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "A repository, package name, dependency, signature, network path, or space check failed."
+          ],
+          "actions": [
+            {
+              "title_ar": "Clean the DNF Cache",
+              "command": "sudo dnf clean all",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "Run dnf",
+              "command": "dnf repoinfo",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "cmd-dnf"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "pkg-network-result": {
+          "id": "pkg-network-result",
+          "type": "result",
+          "diagnosis_ar": "DNF Cannot Reach the Repository",
+          "summary_ar": "The evidence points to dnf cannot reach the repository. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "A repository, package name, dependency, signature, network path, or space check failed."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run getent",
+              "command": "getent hosts cdn.redhat.com",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Test a Website Response",
+              "command": "curl -I https://cdn.redhat.com",
+              "explanation_ar": "Sends a request and displays the response headers.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "pkg-space-result": {
+          "id": "pkg-space-result",
+          "type": "result",
+          "diagnosis_ar": "Insufficient Disk Space Prevents Installation",
+          "summary_ar": "The evidence points to insufficient disk space prevents installation. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "A repository, package name, dependency, signature, network path, or space check failed."
+          ],
+          "actions": [
+            {
+              "title_ar": "Show Filesystem Disk Usage",
+              "command": "df -hT",
+              "explanation_ar": "Displays filesystem capacity and utilization.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Clean the DNF Cache",
+              "command": "sudo dnf clean all",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "pkg-fixed": {
+          "id": "pkg-fixed",
+          "type": "result",
+          "diagnosis_ar": "The Package Operation Succeeded",
+          "summary_ar": "The evidence points to the package operation succeeded. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "A repository, package name, dependency, signature, network path, or space check failed."
+          ],
+          "actions": [
+            {
+              "title_ar": "Check Whether a Package Is Installed",
+              "command": "rpm -q <PACKAGE>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "List Files Installed by a Package",
+              "command": "rpm -ql <PACKAGE>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "install-package-dnf"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        }
+      },
+      "related_entity_id": "install-package-dnf"
+    },
+    {
+      "id": "network-connectivity",
+      "title_ar": "Network or Internet Connectivity Problem",
+      "summary_ar": "Check the link, address, route, gateway, DNS, upstream access, and TLS.",
+      "icon": "⌘",
+      "category": "network",
+      "estimated_minutes": 12,
+      "difficulty": "beginner",
+      "keywords_ar": [
+        "Network or Internet Connectivity Problem",
+        "Check the link, address, route, gateway, DNS, upstream access, and TLS."
+      ],
+      "variables": [
+        {
+          "name": "GATEWAY",
+          "label_ar": "GATEWAY",
+          "example": "192.168.1.1",
+          "required": true
+        },
+        {
+          "name": "INTERFACE",
+          "label_ar": "INTERFACE",
+          "example": "ens192",
+          "required": false
+        },
+        {
+          "name": "CONNECTION",
+          "label_ar": "CONNECTION",
+          "example": "System ens192",
+          "required": false
+        },
+        {
+          "name": "URL",
+          "label_ar": "URL",
+          "example": "https://example.com",
+          "required": false
+        }
+      ],
+      "start_node": "net-link",
+      "max_steps": 6,
+      "nodes": {
+        "net-link": {
+          "id": "net-link",
+          "type": "check",
+          "title_ar": "Show Network Device Status",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "nmcli device status",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "connected",
+              "label_ar": "The connection is active",
+              "next": "net-ip",
+              "tone": "positive"
+            },
+            {
+              "id": "disconnected",
+              "label_ar": "The device is disconnected",
+              "next": "net-link-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "net-ip": {
+          "id": "net-ip",
+          "type": "check",
+          "title_ar": "Show Network Addresses",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "ip address show",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "has-ip",
+              "label_ar": "A valid IP address is assigned",
+              "next": "net-route",
+              "tone": "positive"
+            },
+            {
+              "id": "no-ip",
+              "label_ar": "No valid IP address is assigned",
+              "next": "net-dhcp-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "net-route": {
+          "id": "net-route",
+          "type": "check",
+          "title_ar": "Show the Routing Table",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "ip route show",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "default",
+              "label_ar": "A default route is present",
+              "next": "net-gateway",
+              "tone": "positive"
+            },
+            {
+              "id": "none",
+              "label_ar": "No matching result was found",
+              "next": "net-route-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "net-gateway": {
+          "id": "net-gateway",
+          "type": "check",
+          "title_ar": "Test Host Reachability",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "ping -c 4 <GATEWAY>",
+          "explanation_ar": "Provides an initial network reachability check.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "yes",
+              "label_ar": "Yes",
+              "next": "net-dns",
+              "tone": "positive"
+            },
+            {
+              "id": "no",
+              "label_ar": "No",
+              "next": "net-local-result",
+              "tone": "danger"
+            },
+            {
+              "id": "blocked",
+              "label_ar": "The traffic appears to be blocked",
+              "next": "net-dns",
+              "tone": "normal"
+            }
+          ]
+        },
+        "net-dns": {
+          "id": "net-dns",
+          "type": "check",
+          "title_ar": "Run getent",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "getent hosts redhat.com",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "works",
+              "label_ar": "The test succeeds",
+              "next": "net-internet",
+              "tone": "positive"
+            },
+            {
+              "id": "fails",
+              "label_ar": "The test fails",
+              "next": "net-dns-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "net-internet": {
+          "id": "net-internet",
+          "type": "check",
+          "title_ar": "Test a Website Response",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "curl -I --max-time 10 https://www.redhat.com",
+          "explanation_ar": "Sends a request and displays the response headers.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "works",
+              "label_ar": "The test succeeds",
+              "next": "net-fixed",
+              "tone": "positive"
+            },
+            {
+              "id": "fails",
+              "label_ar": "The test fails",
+              "next": "net-upstream-result",
+              "tone": "danger"
+            },
+            {
+              "id": "tls",
+              "label_ar": "The output points to a TLS or certificate problem",
+              "next": "net-tls-result",
+              "tone": "warning"
+            }
+          ]
+        },
+        "net-link-result": {
+          "id": "net-link-result",
+          "type": "result",
+          "diagnosis_ar": "The Network Link Is Down",
+          "summary_ar": "The evidence points to the network link is down. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "The interface, address, route, gateway, DNS, or upstream path is incorrect."
+          ],
+          "actions": [
+            {
+              "title_ar": "List NetworkManager Connections",
+              "command": "nmcli connection show",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Run nmcli",
+              "command": "sudo nmcli connection up <CONNECTION>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "medium",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "net-dhcp-result": {
+          "id": "net-dhcp-result",
+          "type": "result",
+          "diagnosis_ar": "The Interface Did Not Receive an Address",
+          "summary_ar": "The evidence points to the interface did not receive an address. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "The interface, address, route, gateway, DNS, or upstream path is incorrect."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run nmcli",
+              "command": "nmcli device show <INTERFACE>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Run nmcli",
+              "command": "sudo nmcli connection up <CONNECTION>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "medium",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "net-route-result": {
+          "id": "net-route-result",
+          "type": "result",
+          "diagnosis_ar": "The Default Route Is Missing or Incorrect",
+          "summary_ar": "The evidence points to the default route is missing or incorrect. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "The interface, address, route, gateway, DNS, or upstream path is incorrect."
+          ],
+          "actions": [
+            {
+              "title_ar": "List NetworkManager Connections",
+              "command": "nmcli connection show <CONNECTION>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Show the Routing Table",
+              "command": "ip route show",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "net-local-result": {
+          "id": "net-local-result",
+          "type": "result",
+          "diagnosis_ar": "The Local Network Path Is Failing",
+          "summary_ar": "The evidence points to the local network path is failing. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "The interface, address, route, gateway, DNS, or upstream path is incorrect."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run ip",
+              "command": "ip -br link",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Run ip",
+              "command": "ip neigh show",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "net-dns-result": {
+          "id": "net-dns-result",
+          "type": "result",
+          "diagnosis_ar": "DNS Resolution Is Failing",
+          "summary_ar": "The evidence points to dns resolution is failing. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "The interface, address, route, gateway, DNS, or upstream path is incorrect."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run resolvectl",
+              "command": "resolvectl status 2>/dev/null || cat /etc/resolv.conf",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Query DNS",
+              "command": "dig redhat.com",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "net-upstream-result": {
+          "id": "net-upstream-result",
+          "type": "result",
+          "diagnosis_ar": "Upstream Internet Access Is Failing",
+          "summary_ar": "The evidence points to upstream internet access is failing. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "The interface, address, route, gateway, DNS, or upstream path is incorrect."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run traceroute",
+              "command": "traceroute www.redhat.com",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Run env",
+              "command": "env | grep -i proxy",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "net-tls-result": {
+          "id": "net-tls-result",
+          "type": "result",
+          "diagnosis_ar": "TLS or Certificate Validation Is Failing",
+          "summary_ar": "The evidence points to tls or certificate validation is failing. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "The interface, address, route, gateway, DNS, or upstream path is incorrect."
+          ],
+          "actions": [
+            {
+              "title_ar": "Show Time and Time Settings",
+              "command": "timedatectl",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Test a Website Response",
+              "command": "curl -Iv https://www.redhat.com",
+              "explanation_ar": "Sends a request and displays the response headers.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "net-fixed": {
+          "id": "net-fixed",
+          "type": "result",
+          "diagnosis_ar": "Network Connectivity Is Working",
+          "summary_ar": "The evidence points to network connectivity is working. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "The interface, address, route, gateway, DNS, or upstream path is incorrect."
+          ],
+          "actions": [
+            {
+              "title_ar": "Test a Website Response",
+              "command": "curl -Iv <URL>",
+              "explanation_ar": "Sends a request and displays the response headers.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-network-stack"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        }
+      },
+      "related_entity_id": "concept-network-stack"
+    },
+    {
+      "id": "slow-system",
+      "title_ar": "The System Is Slow or Under High Load",
+      "summary_ar": "Inspect CPU, memory, swap, I/O, and the busiest processes.",
+      "icon": "◷",
+      "category": "processes",
+      "estimated_minutes": 12,
+      "difficulty": "intermediate",
+      "keywords_ar": [
+        "The System Is Slow or Under High Load",
+        "Inspect CPU, memory, swap, I/O, and the busiest processes."
+      ],
+      "variables": [
+        {
+          "name": "PID",
+          "label_ar": "Process ID",
+          "example": "1234",
+          "required": false
+        }
+      ],
+      "start_node": "slow-load",
+      "max_steps": 5,
+      "nodes": {
+        "slow-load": {
+          "id": "slow-load",
+          "type": "check",
+          "title_ar": "Show Uptime and Load Average",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "uptime",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "high",
+              "label_ar": "The value is high",
+              "next": "slow-top",
+              "tone": "warning"
+            },
+            {
+              "id": "normal",
+              "label_ar": "The result looks normal",
+              "next": "slow-memory",
+              "tone": "normal"
+            }
+          ]
+        },
+        "slow-top": {
+          "id": "slow-top",
+          "type": "check",
+          "title_ar": "Monitor Resources in Real Time",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "top",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "cpu",
+              "label_ar": "CPU usage is the main pressure",
+              "next": "slow-cpu-result",
+              "tone": "danger"
+            },
+            {
+              "id": "memory",
+              "label_ar": "Memory or swap is the main pressure",
+              "next": "slow-memory",
+              "tone": "warning"
+            },
+            {
+              "id": "io",
+              "label_ar": "Storage I/O is the main pressure",
+              "next": "slow-io",
+              "tone": "warning"
+            },
+            {
+              "id": "none",
+              "label_ar": "No matching result was found",
+              "next": "slow-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "slow-memory": {
+          "id": "slow-memory",
+          "type": "check",
+          "title_ar": "Show Memory Usage",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "free -h",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "swap",
+              "label_ar": "Swap usage is high",
+              "next": "slow-memory-result",
+              "tone": "danger"
+            },
+            {
+              "id": "normal",
+              "label_ar": "The result looks normal",
+              "next": "slow-io",
+              "tone": "positive"
+            }
+          ]
+        },
+        "slow-io": {
+          "id": "slow-io",
+          "type": "check",
+          "title_ar": "Run vmstat",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "vmstat 1 5",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "wait",
+              "label_ar": "I/O wait is high",
+              "next": "slow-io-result",
+              "tone": "danger"
+            },
+            {
+              "id": "normal",
+              "label_ar": "The result looks normal",
+              "next": "slow-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "slow-cpu-result": {
+          "id": "slow-cpu-result",
+          "type": "result",
+          "diagnosis_ar": "CPU Demand Is Driving the Slowdown",
+          "summary_ar": "The evidence points to cpu demand is driving the slowdown. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "CPU, memory, swap, or storage I/O is saturated."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run ps",
+              "command": "ps -fp <PID>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Run top",
+              "command": "top -H -p <PID>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "legacy-proc-top"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "slow-memory-result": {
+          "id": "slow-memory-result",
+          "type": "result",
+          "diagnosis_ar": "Memory Pressure Is Driving the Slowdown",
+          "summary_ar": "The evidence points to memory pressure is driving the slowdown. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "CPU, memory, swap, or storage I/O is saturated."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run ps",
+              "command": "ps aux --sort=-%mem | head -20",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "View Kernel Messages",
+              "command": "journalctl -k | grep -i -E \"oom|killed process\"",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "legacy-proc-free"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "slow-io-result": {
+          "id": "slow-io-result",
+          "type": "result",
+          "diagnosis_ar": "Storage I/O Is Driving the Slowdown",
+          "summary_ar": "The evidence points to storage i/o is driving the slowdown. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "CPU, memory, swap, or storage I/O is saturated."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run iostat",
+              "command": "iostat -xz 1 5",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Show Kernel Warnings and Errors",
+              "command": "dmesg --level=err,warn",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "find-and-clean-large-files"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "slow-deep": {
+          "id": "slow-deep",
+          "type": "result",
+          "diagnosis_ar": "Deep",
+          "summary_ar": "The evidence points to deep. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "CPU, memory, swap, or storage I/O is saturated."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run vmstat",
+              "command": "vmstat 1 60 > /tmp/vmstat.log",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "List Failed Services",
+              "command": "systemctl --failed",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        }
+      },
+      "related_entity_id": "legacy-proc-top"
+    },
+    {
+      "id": "permission-denied",
+      "title_ar": "Permission Denied",
+      "summary_ar": "Check Unix permissions, ownership, ACLs, parent directories, mounts, and SELinux.",
+      "icon": "⌑",
+      "category": "permissions",
+      "estimated_minutes": 12,
+      "difficulty": "intermediate",
+      "keywords_ar": [
+        "Permission Denied",
+        "Check Unix permissions, ownership, ACLs, parent directories, mounts, and SELinux."
+      ],
+      "variables": [
+        {
+          "name": "PATH",
+          "label_ar": "Path",
+          "example": "/srv/app/config.yml",
+          "required": true
+        },
+        {
+          "name": "USER",
+          "label_ar": "User name",
+          "example": "app",
+          "required": false
+        },
+        {
+          "name": "GROUP",
+          "label_ar": "Group name",
+          "example": "app",
+          "required": false
+        },
+        {
+          "name": "MODE",
+          "label_ar": "Permission mode",
+          "example": "640",
+          "required": false
+        },
+        {
+          "name": "PERMS",
+          "label_ar": "Permissions",
+          "example": "rw",
+          "required": false
+        },
+        {
+          "name": "SERVICE",
+          "label_ar": "Service name",
+          "example": "nginx",
+          "required": false
+        },
+        {
+          "name": "PARENT_PATH",
+          "label_ar": "PARENT_PATH",
+          "example": "/srv/app",
+          "required": false
+        },
+        {
+          "name": "COMMAND",
+          "label_ar": "Command",
+          "example": "cat /srv/app/config.yml",
+          "required": false
+        }
+      ],
+      "start_node": "perm-basic",
+      "max_steps": 5,
+      "nodes": {
+        "perm-basic": {
+          "id": "perm-basic",
+          "type": "check",
+          "title_ar": "Run ls",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "ls -ldZ <PATH>",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "unix",
+              "label_ar": "Unix ownership or mode bits block access",
+              "next": "perm-unix-result",
+              "tone": "warning"
+            },
+            {
+              "id": "looks-ok",
+              "label_ar": "The basic permissions look correct",
+              "next": "perm-acl",
+              "tone": "normal"
+            },
+            {
+              "id": "selinux",
+              "label_ar": "The evidence points to SELinux",
+              "next": "perm-selinux-result",
+              "tone": "warning"
+            },
+            {
+              "id": "missing",
+              "label_ar": "The path does not exist",
+              "next": "perm-missing-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "perm-acl": {
+          "id": "perm-acl",
+          "type": "check",
+          "title_ar": "Display an ACL",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "getfacl -p <PATH>",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "denied",
+              "label_ar": "Administrative permission is denied",
+              "next": "perm-acl-result",
+              "tone": "warning"
+            },
+            {
+              "id": "normal",
+              "label_ar": "The result looks normal",
+              "next": "perm-parent",
+              "tone": "positive"
+            }
+          ]
+        },
+        "perm-parent": {
+          "id": "perm-parent",
+          "type": "check",
+          "title_ar": "Run namei",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "namei -l <PATH>",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "blocked",
+              "label_ar": "The traffic appears to be blocked",
+              "next": "perm-parent-result",
+              "tone": "warning"
+            },
+            {
+              "id": "normal",
+              "label_ar": "The result looks normal",
+              "next": "perm-readonly",
+              "tone": "positive"
+            }
+          ]
+        },
+        "perm-readonly": {
+          "id": "perm-readonly",
+          "type": "check",
+          "title_ar": "Run findmnt",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "findmnt -T <PATH> -o TARGET,SOURCE,FSTYPE,OPTIONS",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "ro",
+              "label_ar": "The filesystem is mounted read-only",
+              "next": "perm-ro-result",
+              "tone": "danger"
+            },
+            {
+              "id": "rw",
+              "label_ar": "The filesystem is mounted read-write",
+              "next": "perm-deep",
+              "tone": "normal"
+            }
+          ]
+        },
+        "perm-unix-result": {
+          "id": "perm-unix-result",
+          "type": "result",
+          "diagnosis_ar": "Unix Ownership or Permissions Block Access",
+          "summary_ar": "The evidence points to unix ownership or permissions block access. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Ownership, mode bits, ACLs, parent directories, SELinux, or a read-only mount blocks access."
+          ],
+          "actions": [
+            {
+              "title_ar": "Show User Identity and Groups",
+              "command": "id <USER>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Change File Ownership",
+              "command": "sudo chown :<GROUP> <PATH>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "high",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "Run chmod",
+              "command": "sudo chmod <MODE> <PATH>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "high",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-linux-permissions"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "perm-acl-result": {
+          "id": "perm-acl-result",
+          "type": "result",
+          "diagnosis_ar": "An ACL or ACL Mask Blocks Access",
+          "summary_ar": "The evidence points to an acl or acl mask blocks access. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Ownership, mode bits, ACLs, parent directories, SELinux, or a read-only mount blocks access."
+          ],
+          "actions": [
+            {
+              "title_ar": "Display an ACL",
+              "command": "getfacl -p <PATH>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Set an ACL",
+              "command": "sudo setfacl -m u:<USER>:<PERMS> <PATH>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "high",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-linux-permissions",
+            "legacy-perm-setfacl"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "perm-parent-result": {
+          "id": "perm-parent-result",
+          "type": "result",
+          "diagnosis_ar": "A Parent Directory Blocks Traversal",
+          "summary_ar": "The evidence points to a parent directory blocks traversal. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Ownership, mode bits, ACLs, parent directories, SELinux, or a read-only mount blocks access."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run chmod",
+              "command": "sudo chmod g+x <PARENT_PATH>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "high",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-linux-permissions"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "perm-selinux-result": {
+          "id": "perm-selinux-result",
+          "type": "result",
+          "diagnosis_ar": "SELinux Blocks Access",
+          "summary_ar": "The evidence points to selinux blocks access. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Ownership, mode bits, ACLs, parent directories, SELinux, or a read-only mount blocks access."
+          ],
+          "actions": [
+            {
+              "title_ar": "Restore SELinux File Contexts",
+              "command": "sudo restorecon -Rv <PATH>",
+              "explanation_ar": "Restores the policy-defined file context.",
+              "risk": "medium",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "Review Recent SELinux Denials",
+              "command": "sudo ausearch -m AVC -ts recent",
+              "explanation_ar": "Reads recent AVC events from the audit log.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "diagnose-selinux-denial"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "perm-missing-result": {
+          "id": "perm-missing-result",
+          "type": "result",
+          "diagnosis_ar": "The Requested Path Does Not Exist",
+          "summary_ar": "The evidence points to the requested path does not exist. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Ownership, mode bits, ACLs, parent directories, SELinux, or a read-only mount blocks access."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run ls",
+              "command": "ls -la <PARENT_PATH>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "List Mount Points",
+              "command": "findmnt",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "perm-ro-result": {
+          "id": "perm-ro-result",
+          "type": "result",
+          "diagnosis_ar": "The Filesystem Is Read-Only",
+          "summary_ar": "The evidence points to the filesystem is read-only. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "Ownership, mode bits, ACLs, parent directories, SELinux, or a read-only mount blocks access."
+          ],
+          "actions": [
+            {
+              "title_ar": "Show Kernel Warnings and Errors",
+              "command": "dmesg --level=err,warn",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Run findmnt",
+              "command": "findmnt -T <PATH>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "perm-deep": {
+          "id": "perm-deep",
+          "type": "result",
+          "diagnosis_ar": "Deep",
+          "summary_ar": "The evidence points to deep. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "Ownership, mode bits, ACLs, parent directories, SELinux, or a read-only mount blocks access."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run systemctl",
+              "command": "systemctl show <SERVICE> -p User -p Group",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Run strace",
+              "command": "sudo strace -e trace=file -f <COMMAND>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "medium",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-linux-permissions",
+            "diagnose-selinux-denial"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        }
+      },
+      "related_entity_id": "concept-linux-permissions"
+    },
+    {
+      "id": "port-unreachable",
+      "title_ar": "A Service or Port Is Unreachable",
+      "summary_ar": "Check listeners, bind addresses, service state, firewalld, and external paths.",
+      "icon": "⇄",
+      "category": "firewall",
+      "estimated_minutes": 12,
+      "difficulty": "intermediate",
+      "keywords_ar": [
+        "A Service or Port Is Unreachable",
+        "Check listeners, bind addresses, service state, firewalld, and external paths."
+      ],
+      "variables": [
+        {
+          "name": "HOST",
+          "label_ar": "Host name or IP address",
+          "example": "192.168.1.10",
+          "required": true
+        },
+        {
+          "name": "PORT",
+          "label_ar": "Port number",
+          "example": "8080",
+          "required": true
+        },
+        {
+          "name": "PROTOCOL",
+          "label_ar": "Protocol",
+          "example": "tcp",
+          "required": true,
+          "default": "tcp"
+        },
+        {
+          "name": "SERVICE",
+          "label_ar": "Service name",
+          "example": "nginx",
+          "required": false
+        },
+        {
+          "name": "CONFIG_PATH",
+          "label_ar": "Configuration path",
+          "example": "/etc/nginx/nginx.conf",
+          "required": false
+        }
+      ],
+      "start_node": "port-listen",
+      "max_steps": 5,
+      "nodes": {
+        "port-listen": {
+          "id": "port-listen",
+          "type": "check",
+          "title_ar": "Run ss",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "sudo ss -tulpn | grep \":<PORT>\"",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "none",
+              "label_ar": "No matching result was found",
+              "next": "port-no-listen",
+              "tone": "danger"
+            },
+            {
+              "id": "localhost",
+              "label_ar": "The service listens only on localhost",
+              "next": "port-bind-result",
+              "tone": "warning"
+            },
+            {
+              "id": "all",
+              "label_ar": "The service listens on a network address",
+              "next": "port-firewall",
+              "tone": "positive"
+            }
+          ]
+        },
+        "port-no-listen": {
+          "id": "port-no-listen",
+          "type": "check",
+          "title_ar": "Show Service Status",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "systemctl status <SERVICE> --no-pager -l",
+          "explanation_ar": "Shows the current unit state and recent messages.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "failed",
+              "label_ar": "The command or service failed",
+              "next": "port-service-result",
+              "tone": "danger"
+            },
+            {
+              "id": "active",
+              "label_ar": "The service is active, but the problem remains",
+              "next": "port-config-result",
+              "tone": "warning"
+            },
+            {
+              "id": "unknown",
+              "label_ar": "I am not sure",
+              "next": "port-process-result",
+              "tone": "normal"
+            }
+          ]
+        },
+        "port-firewall": {
+          "id": "port-firewall",
+          "type": "check",
+          "title_ar": "Check a Firewall Rule",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "sudo firewall-cmd --query-port=<PORT>/<PROTOCOL>",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "yes",
+              "label_ar": "Yes",
+              "next": "port-client",
+              "tone": "positive"
+            },
+            {
+              "id": "no",
+              "label_ar": "No",
+              "next": "port-firewall-result",
+              "tone": "danger"
+            },
+            {
+              "id": "inactive",
+              "label_ar": "The service is inactive or stopped",
+              "next": "port-client",
+              "tone": "normal"
+            }
+          ]
+        },
+        "port-client": {
+          "id": "port-client",
+          "type": "check",
+          "title_ar": "Run nc",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "nc -vz <HOST> <PORT>",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "open",
+              "label_ar": "The port or connection is open",
+              "next": "port-app-result",
+              "tone": "positive"
+            },
+            {
+              "id": "refused",
+              "label_ar": "Connection refused",
+              "next": "port-refused-result",
+              "tone": "danger"
+            },
+            {
+              "id": "timeout",
+              "label_ar": "The connection timed out",
+              "next": "port-external-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "port-bind-result": {
+          "id": "port-bind-result",
+          "type": "result",
+          "diagnosis_ar": "The Service Listens Only on a Local Address",
+          "summary_ar": "The evidence points to the service listens only on a local address. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "No process listens, the bind address is local-only, or a firewall blocks the port."
+          ],
+          "actions": [
+            {
+              "title_ar": "Search Recursively in a Directory",
+              "command": "grep -Rni \"listen\\|bind\" <CONFIG_PATH>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Restart a Service",
+              "command": "sudo systemctl restart <SERVICE>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "high",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "port-service-result": {
+          "id": "port-service-result",
+          "type": "result",
+          "diagnosis_ar": "The Service Is Not Running",
+          "summary_ar": "The evidence points to the service is not running. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "No process listens, the bind address is local-only, or a firewall blocks the port."
+          ],
+          "actions": [
+            {
+              "title_ar": "View a Service Log",
+              "command": "journalctl -u <SERVICE> -b --no-pager",
+              "explanation_ar": "Reads journal entries for the selected service.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "troubleshoot-systemd-service"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "port-config-result": {
+          "id": "port-config-result",
+          "type": "result",
+          "diagnosis_ar": "The Service Configuration Does Not Open the Port",
+          "summary_ar": "The evidence points to the service configuration does not open the port. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "No process listens, the bind address is local-only, or a firewall blocks the port."
+          ],
+          "actions": [
+            {
+              "title_ar": "Inspect the Unit Definition",
+              "command": "systemctl cat <SERVICE>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Run ss",
+              "command": "sudo ss -tulpn",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "port-process-result": {
+          "id": "port-process-result",
+          "type": "result",
+          "diagnosis_ar": "No Process Is Listening on the Port",
+          "summary_ar": "The evidence points to no process is listening on the port. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "No process listens, the bind address is local-only, or a firewall blocks the port."
+          ],
+          "actions": [
+            {
+              "title_ar": "Search Recursively in a Directory",
+              "command": "grep -Rni '<PORT>' /etc/systemd/system /usr/lib/systemd/system 2>/dev/null",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "port-firewall-result": {
+          "id": "port-firewall-result",
+          "type": "result",
+          "diagnosis_ar": "firewalld Does Not Allow the Port",
+          "summary_ar": "The evidence points to firewalld does not allow the port. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "No process listens, the bind address is local-only, or a firewall blocks the port."
+          ],
+          "actions": [
+            {
+              "title_ar": "Show Active Firewall Zones",
+              "command": "sudo firewall-cmd --get-active-zones",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "Open a Firewall Port",
+              "command": "sudo firewall-cmd --permanent --add-port=<PORT>/<PROTOCOL>",
+              "explanation_ar": "Adds a permanent firewalld port rule.",
+              "risk": "high",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "Reload firewalld Rules",
+              "command": "sudo firewall-cmd --reload",
+              "explanation_ar": "Applies permanent firewall changes.",
+              "risk": "medium",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "cmd-firewall-cmd",
+            "concept-firewalld"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "port-app-result": {
+          "id": "port-app-result",
+          "type": "result",
+          "diagnosis_ar": "The Port Is Reachable",
+          "summary_ar": "The evidence points to the port is reachable. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "No process listens, the bind address is local-only, or a firewall blocks the port."
+          ],
+          "actions": [
+            {
+              "title_ar": "Test a Website Response",
+              "command": "curl -Iv http://<HOST>:<PORT>",
+              "explanation_ar": "Sends a request and displays the response headers.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Run openssl",
+              "command": "openssl s_client -connect <HOST>:<PORT>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "port-refused-result": {
+          "id": "port-refused-result",
+          "type": "result",
+          "diagnosis_ar": "The Remote Host Refuses the Connection",
+          "summary_ar": "The evidence points to the remote host refuses the connection. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "No process listens, the bind address is local-only, or a firewall blocks the port."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run ss",
+              "command": "sudo ss -tulpn | grep \":<PORT>\"",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "port-external-result": {
+          "id": "port-external-result",
+          "type": "result",
+          "diagnosis_ar": "A Network Firewall or Route Blocks the Port",
+          "summary_ar": "The evidence points to a network firewall or route blocks the port. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "No process listens, the bind address is local-only, or a firewall blocks the port."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run tcpdump",
+              "command": "sudo tcpdump -ni any port <PORT>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        }
+      },
+      "related_entity_id": "cmd-firewall-cmd"
+    },
+    {
+      "id": "selinux-denial",
+      "title_ar": "SELinux May Be Blocking the Service",
+      "summary_ar": "Confirm an AVC denial, then inspect contexts, Booleans, port types, and policy.",
+      "icon": "◉",
+      "category": "selinux",
+      "estimated_minutes": 15,
+      "difficulty": "advanced",
+      "keywords_ar": [
+        "SELinux May Be Blocking the Service",
+        "Confirm an AVC denial, then inspect contexts, Booleans, port types, and policy."
+      ],
+      "variables": [
+        {
+          "name": "PATH",
+          "label_ar": "Path",
+          "example": "/var/www/html",
+          "required": true
+        },
+        {
+          "name": "SERVICE",
+          "label_ar": "Service name",
+          "example": "httpd",
+          "required": false
+        },
+        {
+          "name": "PORT",
+          "label_ar": "Port number",
+          "example": "8080",
+          "required": false
+        },
+        {
+          "name": "PROTOCOL",
+          "label_ar": "Protocol",
+          "example": "tcp",
+          "required": false,
+          "default": "tcp"
+        },
+        {
+          "name": "BOOLEAN",
+          "label_ar": "SELinux Boolean",
+          "example": "httpd_can_network_connect",
+          "required": false
+        },
+        {
+          "name": "PORT_TYPE",
+          "label_ar": "PORT_TYPE",
+          "example": "http_port_t",
+          "required": false
+        },
+        {
+          "name": "RETRY_COMMAND",
+          "label_ar": "RETRY_COMMAND",
+          "example": "curl http://localhost",
+          "required": false
+        }
+      ],
+      "start_node": "se-status",
+      "max_steps": 6,
+      "nodes": {
+        "se-status": {
+          "id": "se-status",
+          "type": "check",
+          "title_ar": "Show Detailed SELinux Status",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "sestatus",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "enforcing",
+              "label_ar": "SELinux is enforcing",
+              "next": "se-avc",
+              "tone": "positive"
+            },
+            {
+              "id": "permissive",
+              "label_ar": "SELinux is permissive",
+              "next": "se-permissive-result",
+              "tone": "warning"
+            },
+            {
+              "id": "disabled",
+              "label_ar": "SELinux is disabled",
+              "next": "se-disabled-result",
+              "tone": "danger"
+            }
+          ]
+        },
+        "se-avc": {
+          "id": "se-avc",
+          "type": "check",
+          "title_ar": "Review Recent SELinux Denials",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "sudo ausearch -m AVC,USER_AVC -ts recent",
+          "explanation_ar": "Reads recent AVC events from the audit log.",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "found",
+              "label_ar": "A relevant result was found",
+              "next": "se-context",
+              "tone": "danger"
+            },
+            {
+              "id": "none",
+              "label_ar": "No matching result was found",
+              "next": "se-not-selinux",
+              "tone": "normal"
+            }
+          ]
+        },
+        "se-context": {
+          "id": "se-context",
+          "type": "check",
+          "title_ar": "Show SELinux File Contexts",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "ls -Zd <PATH>",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "wrong",
+              "label_ar": "The context does not match the expected path",
+              "next": "se-restore-result",
+              "tone": "warning"
+            },
+            {
+              "id": "normal",
+              "label_ar": "The result looks normal",
+              "next": "se-boolean",
+              "tone": "positive"
+            },
+            {
+              "id": "unknown",
+              "label_ar": "I am not sure",
+              "next": "se-compare",
+              "tone": "normal"
+            }
+          ]
+        },
+        "se-compare": {
+          "id": "se-compare",
+          "type": "check",
+          "title_ar": "Run matchpathcon",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "matchpathcon <PATH>",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "different",
+              "label_ar": "The default context is different",
+              "next": "se-restore-result",
+              "tone": "warning"
+            },
+            {
+              "id": "same",
+              "label_ar": "The context matches policy",
+              "next": "se-boolean",
+              "tone": "positive"
+            }
+          ]
+        },
+        "se-boolean": {
+          "id": "se-boolean",
+          "type": "check",
+          "title_ar": "List SELinux Booleans",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "getsebool -a | grep -i <SERVICE>",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": false,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "found-off",
+              "label_ar": "A relevant Boolean exists and is set to off",
+              "next": "se-boolean-result",
+              "tone": "warning"
+            },
+            {
+              "id": "none",
+              "label_ar": "No matching result was found",
+              "next": "se-port",
+              "tone": "normal"
+            }
+          ]
+        },
+        "se-port": {
+          "id": "se-port",
+          "type": "check",
+          "title_ar": "List SELinux Port Definitions",
+          "text_ar": "Run this check and choose the result that best matches the output.",
+          "command": "sudo semanage port -l | grep -i <SERVICE>",
+          "explanation_ar": "Runs the displayed command as part of this procedure.",
+          "risk": "low",
+          "requires_sudo": true,
+          "expected_result_ar": "Review the output and select the matching result.",
+          "choices": [
+            {
+              "id": "wrong",
+              "label_ar": "The context does not match the expected path",
+              "next": "se-port-result",
+              "tone": "warning"
+            },
+            {
+              "id": "normal",
+              "label_ar": "The result looks normal",
+              "next": "se-policy-result",
+              "tone": "normal"
+            }
+          ]
+        },
+        "se-permissive-result": {
+          "id": "se-permissive-result",
+          "type": "result",
+          "diagnosis_ar": "SELinux Is Not Enforcing the Denial",
+          "summary_ar": "The evidence points to selinux is not enforcing the denial. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "A context, Boolean, port type, or policy rule does not permit the operation."
+          ],
+          "actions": [
+            {
+              "title_ar": "Review Recent SELinux Denials",
+              "command": "sudo ausearch -m AVC -ts recent",
+              "explanation_ar": "Reads recent AVC events from the audit log.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "diagnose-selinux-denial"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "se-disabled-result": {
+          "id": "se-disabled-result",
+          "type": "result",
+          "diagnosis_ar": "SELinux Is Disabled",
+          "summary_ar": "The evidence points to selinux is disabled. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "A context, Boolean, port type, or policy rule does not permit the operation."
+          ],
+          "actions": [
+            {
+              "title_ar": "Run ls",
+              "command": "ls -ld <PATH>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-linux-permissions"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "se-not-selinux": {
+          "id": "se-not-selinux",
+          "type": "result",
+          "diagnosis_ar": "No Related SELinux Denial Was Found",
+          "summary_ar": "The evidence points to no related selinux denial was found. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "A context, Boolean, port type, or policy rule does not permit the operation."
+          ],
+          "actions": [
+            {
+              "title_ar": "Show Service Status",
+              "command": "systemctl status <SERVICE> --no-pager -l",
+              "explanation_ar": "Shows the current unit state and recent messages.",
+              "risk": "low",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Run ls",
+              "command": "ls -ldZ <PATH>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "low",
+              "requires_sudo": false
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "concept-linux-permissions"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "se-restore-result": {
+          "id": "se-restore-result",
+          "type": "result",
+          "diagnosis_ar": "The Path Has an Incorrect SELinux Context",
+          "summary_ar": "The evidence points to the path has an incorrect selinux context. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "A context, Boolean, port type, or policy rule does not permit the operation."
+          ],
+          "actions": [
+            {
+              "title_ar": "Restore SELinux File Contexts",
+              "command": "sudo restorecon -Rv <PATH>",
+              "explanation_ar": "Restores the policy-defined file context.",
+              "risk": "medium",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [
+            {
+              "title_ar": "Show SELinux File Contexts",
+              "command": "ls -Zd <PATH>",
+              "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+              "requires_sudo": false
+            },
+            {
+              "title_ar": "Run <RETRY_COMMAND>",
+              "command": "<RETRY_COMMAND>",
+              "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+              "requires_sudo": false
+            }
+          ],
+          "related_entity_ids": [
+            "diagnose-selinux-denial"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "se-boolean-result": {
+          "id": "se-boolean-result",
+          "type": "result",
+          "diagnosis_ar": "A Documented SELinux Boolean Is Required",
+          "summary_ar": "The evidence points to a documented selinux boolean is required. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "A context, Boolean, port type, or policy rule does not permit the operation."
+          ],
+          "actions": [
+            {
+              "title_ar": "Change an SELinux Boolean",
+              "command": "sudo setsebool -P <BOOLEAN> on",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "high",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "diagnose-selinux-denial"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "se-port-result": {
+          "id": "se-port-result",
+          "type": "result",
+          "diagnosis_ar": "The Service Uses an Incorrect SELinux Port Type",
+          "summary_ar": "The evidence points to the service uses an incorrect selinux port type. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "high",
+          "likely_causes_ar": [
+            "A context, Boolean, port type, or policy rule does not permit the operation."
+          ],
+          "actions": [
+            {
+              "title_ar": "List SELinux Port Definitions",
+              "command": "sudo semanage port -a -t <PORT_TYPE> -p <PROTOCOL> <PORT>",
+              "explanation_ar": "Runs the displayed command as part of this procedure.",
+              "risk": "high",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "diagnose-selinux-denial"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        },
+        "se-policy-result": {
+          "id": "se-policy-result",
+          "type": "result",
+          "diagnosis_ar": "The Denial Requires Policy Review",
+          "summary_ar": "The evidence points to the denial requires policy review. Review the likely causes and apply the least disruptive corrective action.",
+          "confidence": "medium",
+          "likely_causes_ar": [
+            "A context, Boolean, port type, or policy rule does not permit the operation."
+          ],
+          "actions": [
+            {
+              "title_ar": "Review Recent SELinux Denials",
+              "command": "sudo ausearch -m AVC -ts recent | audit2why",
+              "explanation_ar": "Reads recent AVC events from the audit log.",
+              "risk": "low",
+              "requires_sudo": true
+            },
+            {
+              "title_ar": "Review Recent SELinux Denials",
+              "command": "sudo ausearch -m AVC -ts recent > /tmp/avc.txt",
+              "explanation_ar": "Reads recent AVC events from the audit log.",
+              "risk": "low",
+              "requires_sudo": true
+            }
+          ],
+          "verification": [],
+          "related_entity_ids": [
+            "diagnose-selinux-denial"
+          ],
+          "safety_notes_ar": [
+            "Review each change before applying it.",
+            "Keep a rollback path and verify the result."
+          ]
+        }
+      },
+      "related_entity_id": "diagnose-selinux-denial"
+    }
+  ]
+}

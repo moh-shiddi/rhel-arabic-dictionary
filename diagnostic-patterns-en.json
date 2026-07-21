@@ -1,0 +1,2301 @@
+{
+  "schema_version": "1.0.0",
+  "title": "RHEL Execution Diagnostic Patterns",
+  "description_ar": "Local rules for analyzing RHEL command output without sending terminal data to an external service.",
+  "success_patterns": [
+    {
+      "id": "systemd-active",
+      "pattern": "^\\s*active\\s*$|active \\(running\\)",
+      "summary_ar": "The service is active."
+    },
+    {
+      "id": "systemd-enabled",
+      "pattern": "^\\s*enabled\\s*$",
+      "summary_ar": "The service is enabled at boot."
+    },
+    {
+      "id": "generic-success",
+      "pattern": "\\bsuccess(?:ful|fully)?\\b|complete!|completed successfully",
+      "summary_ar": "The output contains a clear success indicator."
+    },
+    {
+      "id": "config-ok",
+      "pattern": "syntax is ok|syntax ok|test is successful|configuration file .* test is successful",
+      "summary_ar": "The configuration syntax test succeeded."
+    },
+    {
+      "id": "http-success",
+      "pattern": "http/\\d(?:\\.\\d)?\\s+(?:20[0-9]|30[0-9])",
+      "summary_ar": "The server returned a successful HTTP response or redirect."
+    },
+    {
+      "id": "dnf-complete",
+      "pattern": "^\\s*(?:installed|upgraded|removed):|complete!\\s*$|nothing to do",
+      "summary_ar": "The DNF transaction completed."
+    },
+    {
+      "id": "firewall-success",
+      "pattern": "^\\s*success\\s*$|^\\s*yes\\s*$",
+      "summary_ar": "firewalld confirmed the requested state."
+    },
+    {
+      "id": "ping-success",
+      "pattern": "0% packet loss|[1-9]\\d* received",
+      "summary_ar": "The network test received a response."
+    },
+    {
+      "id": "exists-success",
+      "pattern": "^\\s*exists\\s*$",
+      "summary_ar": "The resource exists."
+    }
+  ],
+  "rules": [
+    {
+      "id": "command-not-found",
+      "title_ar": "Command or Program Not Found",
+      "patterns": [
+        "command not found",
+        "(?:bash|sh): .*: not found"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "shell",
+        "packages"
+      ],
+      "severity": "medium",
+      "base_confidence": 0.98,
+      "explanation_ar": "The shell could not locate the executable in PATH, or the package that provides it is not installed.",
+      "likely_causes_ar": [
+        "The package name, repository, dependency, signature, or transaction state is invalid."
+      ],
+      "checks": [
+        {
+          "title_ar": "Find a Command Path",
+          "command": "command -v <COMMAND>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Find the Package That Provides a File",
+          "command": "dnf provides '*/<COMMAND>'",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Use compatible packages and official repositories, then repeat the transaction check."
+      ],
+      "verification": [
+        {
+          "title_ar": "Find a Command Path",
+          "command": "command -v <COMMAND>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "sudoers-denied",
+      "title_ar": "The User Is Not Authorized for sudo",
+      "patterns": [
+        "is not in the sudoers file",
+        "may not run sudo",
+        "not allowed to execute.*as root"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "permissions",
+        "users"
+      ],
+      "severity": "high",
+      "base_confidence": 0.99,
+      "explanation_ar": "The current account does not have the sudo authorization required for this administrative command.",
+      "likely_causes_ar": [
+        "Ownership, mode bits, ACLs, or parent-directory access is incorrect."
+      ],
+      "checks": [
+        {
+          "title_ar": "Show User Identity and Groups",
+          "command": "id <USER>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run -l",
+          "command": "sudo -l",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Grant only the minimum required access and verify ownership, ACLs, and SELinux."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run -v",
+          "command": "sudo -v",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "permission-denied",
+      "title_ar": "Permission Denied",
+      "patterns": [
+        "permission denied",
+        "operation not permitted",
+        "access denied"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "permissions",
+        "filesystem",
+        "selinux"
+      ],
+      "severity": "high",
+      "base_confidence": 0.97,
+      "explanation_ar": "The process does not have the required access. Unix permissions, ownership, ACLs, mount options, or SELinux may be responsible.",
+      "likely_causes_ar": [
+        "Ownership, mode bits, ACLs, or parent-directory access is incorrect.",
+        "The path, mount state, filesystem, or storage device is incorrect.",
+        "The context, Boolean, port type, or policy does not permit the action."
+      ],
+      "checks": [
+        {
+          "title_ar": "Show User Identity and Groups",
+          "command": "id",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run namei",
+          "command": "namei -l <PATH>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run ls",
+          "command": "ls -ldZ <PATH>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Review Recent SELinux Denials",
+          "command": "sudo ausearch -m AVC,USER_AVC -ts recent",
+          "expected_result_ar": "Relevant AVC events are displayed, or the result is empty.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Grant only the minimum required access and verify ownership, ACLs, and SELinux.",
+        "Use restorecon, a documented Boolean, or an approved port type; do not disable SELinux."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run <RETRY_ORIGINAL_ACTION>",
+          "command": "<RETRY_ORIGINAL_ACTION>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "no-space",
+      "title_ar": "No Space Left on Device",
+      "patterns": [
+        "no space left on device",
+        "disk quota exceeded",
+        "not enough space"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "storage",
+        "filesystem"
+      ],
+      "severity": "high",
+      "base_confidence": 0.99,
+      "explanation_ar": "The write failed because filesystem capacity, inodes, a quota, or space held by deleted-open files is exhausted.",
+      "likely_causes_ar": [
+        "Capacity, inodes, filesystem state, LVM space, or the device path is failing.",
+        "The path, mount state, filesystem, or storage device is incorrect."
+      ],
+      "checks": [
+        {
+          "title_ar": "Show Filesystem Disk Usage",
+          "command": "df -hT",
+          "expected_result_ar": "Filesystem usage is displayed.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Check Inode Usage",
+          "command": "df -ih",
+          "expected_result_ar": "Filesystem usage is displayed.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run du",
+          "command": "sudo du -xhd1 <PATH> | sort -h",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Find Deleted Files Still Open",
+          "command": "sudo lsof +L1",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Protect data first, identify the real consumer or failing device, and repair or extend the correct layer."
+      ],
+      "verification": [
+        {
+          "title_ar": "Show Filesystem Disk Usage",
+          "command": "df -hT",
+          "expected_result_ar": "Filesystem usage is displayed.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run <RETRY_ORIGINAL_ACTION>",
+          "command": "<RETRY_ORIGINAL_ACTION>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "read-only-filesystem",
+      "title_ar": "Filesystem Is Read-Only",
+      "patterns": [
+        "read-only file system",
+        "filesystem is read-only"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "storage",
+        "filesystem"
+      ],
+      "severity": "critical",
+      "base_confidence": 0.98,
+      "explanation_ar": "The filesystem does not currently allow writes. It may be mounted read-only or protecting itself after a storage error.",
+      "likely_causes_ar": [
+        "Capacity, inodes, filesystem state, LVM space, or the device path is failing.",
+        "The path, mount state, filesystem, or storage device is incorrect."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run findmnt",
+          "command": "findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS <PATH>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run journalctl",
+          "command": "sudo journalctl -k -b --no-pager | tail -n 100",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Protect data first, identify the real consumer or failing device, and repair or extend the correct layer."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run findmnt",
+          "command": "findmnt -no OPTIONS <PATH>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "file-missing",
+      "title_ar": "File or Path Not Found",
+      "patterns": [
+        "no such file or directory",
+        "cannot stat",
+        "cannot access .* no such",
+        "not a directory"
+      ],
+      "negative_patterns": [
+        "command not found"
+      ],
+      "domains": [
+        "filesystem"
+      ],
+      "severity": "medium",
+      "base_confidence": 0.92,
+      "explanation_ar": "The requested path does not exist, or one component of the path is incorrect.",
+      "likely_causes_ar": [
+        "The path, mount state, filesystem, or storage device is incorrect."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run ls",
+          "command": "ls -ld <PATH>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run namei",
+          "command": "namei -l <PATH>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Collect complete output and run the recommended read-only checks before changing the system."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run test",
+          "command": "test -e <PATH> && echo EXISTS",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "unit-not-found",
+      "title_ar": "systemd Unit Not Found",
+      "patterns": [
+        "unit .* not found",
+        "unit .* could not be found"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "service",
+        "systemd"
+      ],
+      "severity": "medium",
+      "base_confidence": 0.98,
+      "explanation_ar": "The unit name is incorrect, the providing package is absent, or systemd has not reloaded a new unit.",
+      "likely_causes_ar": [
+        "Invalid configuration or a failed dependency.",
+        "A required path, permission, or port is unavailable.",
+        "The unit name, state, or dependency chain is incorrect."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run systemctl",
+          "command": "systemctl list-unit-files | grep -i <SERVICE>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Search for a Package",
+          "command": "dnf search <SERVICE>",
+          "expected_result_ar": "Matching packages or alternatives are displayed.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Reload systemd Unit Files",
+          "command": "sudo systemctl daemon-reload",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Read the first meaningful service log error and correct the root cause before restarting."
+      ],
+      "verification": [
+        {
+          "title_ar": "Show Service Status",
+          "command": "systemctl status <SERVICE> --no-pager",
+          "expected_result_ar": "The unit status and recent messages are displayed.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "service-failed",
+      "title_ar": "Service Failed to Start",
+      "patterns": [
+        "job for .*\\.service failed",
+        "control process exited with error code",
+        "failed with result ['\"]?exit-code",
+        "main process exited"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "service",
+        "systemd"
+      ],
+      "severity": "high",
+      "base_confidence": 0.94,
+      "explanation_ar": "systemd recorded a failure, but the root cause must be identified from the unit journal and application configuration.",
+      "likely_causes_ar": [
+        "Invalid configuration or a failed dependency.",
+        "A required path, permission, or port is unavailable.",
+        "The unit name, state, or dependency chain is incorrect."
+      ],
+      "checks": [
+        {
+          "title_ar": "Show Service Status",
+          "command": "systemctl status <SERVICE> --no-pager -l",
+          "expected_result_ar": "The unit status and recent messages are displayed.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "View a Service Log",
+          "command": "journalctl -u <SERVICE> -b --no-pager -n 120",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Inspect the Unit Definition",
+          "command": "systemctl cat <SERVICE>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Read the first meaningful service log error and correct the root cause before restarting."
+      ],
+      "verification": [
+        {
+          "title_ar": "Verify the Service Is Active",
+          "command": "systemctl is-active <SERVICE>",
+          "expected_result_ar": "The command returns active.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "List Failed Services",
+          "command": "systemctl --failed",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "service-masked",
+      "title_ar": "The Service Is Masked",
+      "patterns": [
+        "unit .* is masked",
+        "unit file .* is masked"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "service",
+        "systemd"
+      ],
+      "severity": "high",
+      "base_confidence": 0.99,
+      "explanation_ar": "The unit is linked to /dev/null and cannot be started until the mask is intentionally removed.",
+      "likely_causes_ar": [
+        "Invalid configuration or a failed dependency.",
+        "A required path, permission, or port is unavailable.",
+        "The unit name, state, or dependency chain is incorrect."
+      ],
+      "checks": [
+        {
+          "title_ar": "Check Whether a Service Is Enabled",
+          "command": "systemctl is-enabled <SERVICE>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Read the first meaningful service log error and correct the root cause before restarting."
+      ],
+      "verification": [
+        {
+          "title_ar": "Check Whether a Service Is Enabled",
+          "command": "systemctl is-enabled <SERVICE>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "address-in-use",
+      "title_ar": "Address or Port Already in Use",
+      "patterns": [
+        "address already in use",
+        "bind\\(\\).*failed.*(?:98|address in use)",
+        "failed to bind.*address"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "service",
+        "network",
+        "port"
+      ],
+      "severity": "high",
+      "base_confidence": 0.99,
+      "explanation_ar": "The application attempted to bind to an address or port already owned by another process.",
+      "likely_causes_ar": [
+        "Invalid configuration or a failed dependency.",
+        "A required path, permission, or port is unavailable.",
+        "The address, route, DNS, firewall, or remote service is unavailable.",
+        "No intended process is listening, or another process owns the port."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run ss",
+          "command": "sudo ss -tulpn | grep ':<PORT>'",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Inspect the Unit Definition",
+          "command": "systemctl cat <SERVICE>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Read the first meaningful service log error and correct the root cause before restarting.",
+        "Verify the address, route, listener, and firewall path in order."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run ss",
+          "command": "sudo ss -tulpn | grep ':<PORT>'",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Restart a Service",
+          "command": "sudo systemctl restart <SERVICE> && systemctl is-active <SERVICE>",
+          "expected_result_ar": "The command returns active.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "configuration-syntax",
+      "title_ar": "Configuration Syntax Error",
+      "patterns": [
+        "syntax error",
+        "unknown directive",
+        "invalid command",
+        "invalid number of arguments",
+        "nginx:\\s*\\[emerg\\]",
+        "configuration file .* test failed"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "configuration",
+        "service",
+        "web"
+      ],
+      "severity": "high",
+      "base_confidence": 0.97,
+      "explanation_ar": "The application rejected its configuration because a directive, value, or file syntax is invalid.",
+      "likely_causes_ar": [
+        "Invalid configuration or a failed dependency.",
+        "A required path, permission, or port is unavailable.",
+        "The resource, access rule, upstream application, or TLS configuration is incorrect."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run nginx",
+          "command": "sudo nginx -t",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run apachectl",
+          "command": "sudo apachectl configtest",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run nl",
+          "command": "sudo nl -ba <PATH> | sed -n '<LINE_START>,<LINE_END>p'",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Read the first meaningful service log error and correct the root cause before restarting.",
+        "Correct the resource, upstream service, access rule, or certificate, then repeat the request."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run <CONFIG_TEST_COMMAND>",
+          "command": "<CONFIG_TEST_COMMAND>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Restart a Service",
+          "command": "sudo systemctl restart <SERVICE>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "dependency-failed",
+      "title_ar": "A Required Dependency Failed",
+      "patterns": [
+        "dependency failed for",
+        "failed to start .* dependency",
+        "required dependency .* failed"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "service",
+        "systemd"
+      ],
+      "severity": "high",
+      "base_confidence": 0.95,
+      "explanation_ar": "The unit could not start because another required unit or resource failed.",
+      "likely_causes_ar": [
+        "Invalid configuration or a failed dependency.",
+        "A required path, permission, or port is unavailable.",
+        "The unit name, state, or dependency chain is incorrect."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run systemctl",
+          "command": "systemctl list-dependencies <SERVICE>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "List Failed Services",
+          "command": "systemctl --failed",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Read the first meaningful service log error and correct the root cause before restarting."
+      ],
+      "verification": [
+        {
+          "title_ar": "List Failed Services",
+          "command": "systemctl --failed",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "connection-refused",
+      "title_ar": "Connection Refused",
+      "patterns": [
+        "connection refused",
+        "failed to connect .* refused"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "network",
+        "port",
+        "service"
+      ],
+      "severity": "high",
+      "base_confidence": 0.98,
+      "explanation_ar": "The host was reached, but nothing accepted the connection on the target port or a firewall rejected it.",
+      "likely_causes_ar": [
+        "The address, route, DNS, firewall, or remote service is unavailable.",
+        "No intended process is listening, or another process owns the port.",
+        "Invalid configuration or a failed dependency.",
+        "A required path, permission, or port is unavailable."
+      ],
+      "checks": [
+        {
+          "title_ar": "Show Service Status",
+          "command": "systemctl status <SERVICE> --no-pager -l",
+          "expected_result_ar": "The unit status and recent messages are displayed.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run ss",
+          "command": "sudo ss -tlnp | grep ':<PORT>'",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Show Firewall Rules",
+          "command": "sudo firewall-cmd --list-all",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Verify the address, route, listener, and firewall path in order.",
+        "Read the first meaningful service log error and correct the root cause before restarting."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run nc",
+          "command": "nc -vz <HOST> <PORT>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "connection-timeout",
+      "title_ar": "Connection Timed Out",
+      "patterns": [
+        "connection timed out",
+        "operation timed out",
+        "timed out after",
+        "timeout was reached"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "network",
+        "port"
+      ],
+      "severity": "high",
+      "base_confidence": 0.97,
+      "explanation_ar": "No response arrived before the timeout. Routing, filtering, addressing, or server load may be responsible.",
+      "likely_causes_ar": [
+        "The address, route, DNS, firewall, or remote service is unavailable.",
+        "No intended process is listening, or another process owns the port."
+      ],
+      "checks": [
+        {
+          "title_ar": "Test Host Reachability",
+          "command": "ping -c 4 <HOST>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run ip",
+          "command": "ip route get <HOST>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run nc",
+          "command": "nc -vz -w 5 <HOST> <PORT>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run tracepath",
+          "command": "tracepath <HOST>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Verify the address, route, listener, and firewall path in order."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run nc",
+          "command": "nc -vz -w 5 <HOST> <PORT>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "network-unreachable",
+      "title_ar": "Network or Host Unreachable",
+      "patterns": [
+        "network is unreachable",
+        "destination host unreachable",
+        "no route to host"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "network"
+      ],
+      "severity": "high",
+      "base_confidence": 0.98,
+      "explanation_ar": "The system has no usable path to the destination, or the interface and gateway are not ready.",
+      "likely_causes_ar": [
+        "The address, route, DNS, firewall, or remote service is unavailable."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run ip",
+          "command": "ip -br address",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run ip",
+          "command": "ip route",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Show Network Device Status",
+          "command": "nmcli device status",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Verify the address, route, listener, and firewall path in order."
+      ],
+      "verification": [
+        {
+          "title_ar": "Test Host Reachability",
+          "command": "ping -c 4 <HOST>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "dns-resolution",
+      "title_ar": "DNS Name Resolution Failed",
+      "patterns": [
+        "could not resolve host",
+        "temporary failure in name resolution",
+        "name or service not known",
+        "no address associated with hostname"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "network",
+        "dns"
+      ],
+      "severity": "high",
+      "base_confidence": 0.99,
+      "explanation_ar": "The system could not translate the host name into an IP address.",
+      "likely_causes_ar": [
+        "The address, route, DNS, firewall, or remote service is unavailable."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run getent",
+          "command": "getent hosts <HOST>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Display a File",
+          "command": "cat /etc/resolv.conf",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run nmcli",
+          "command": "nmcli dev show | grep -i DNS",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Verify the address, route, listener, and firewall path in order."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run getent",
+          "command": "getent hosts <HOST>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "http-403",
+      "title_ar": "HTTP 403 Forbidden",
+      "patterns": [
+        "http/\\d(?:\\.\\d)?\\s+403",
+        "\\b403 forbidden\\b"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "web",
+        "permissions",
+        "selinux"
+      ],
+      "severity": "medium",
+      "base_confidence": 0.98,
+      "explanation_ar": "The server received the request but refused access to the resource.",
+      "likely_causes_ar": [
+        "The resource, access rule, upstream application, or TLS configuration is incorrect.",
+        "Ownership, mode bits, ACLs, or parent-directory access is incorrect.",
+        "The context, Boolean, port type, or policy does not permit the action."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run namei",
+          "command": "namei -l <PATH>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run ls",
+          "command": "ls -ldZ <PATH>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "View a Service Log",
+          "command": "journalctl -u <SERVICE> -b --no-pager -n 100",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Correct the resource, upstream service, access rule, or certificate, then repeat the request.",
+        "Grant only the minimum required access and verify ownership, ACLs, and SELinux.",
+        "Use restorecon, a documented Boolean, or an approved port type; do not disable SELinux."
+      ],
+      "verification": [
+        {
+          "title_ar": "Test a Website Response",
+          "command": "curl -I http://<HOST>:<PORT><PATH>",
+          "expected_result_ar": "A valid application response is returned.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "http-404",
+      "title_ar": "HTTP 404 Not Found",
+      "patterns": [
+        "http/\\d(?:\\.\\d)?\\s+404",
+        "\\b404 not found\\b"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "web"
+      ],
+      "severity": "low",
+      "base_confidence": 0.98,
+      "explanation_ar": "The web server is responding, but the requested resource or route does not exist.",
+      "likely_causes_ar": [
+        "The resource, access rule, upstream application, or TLS configuration is incorrect."
+      ],
+      "checks": [
+        {
+          "title_ar": "Test a Website Response",
+          "command": "curl -I http://<HOST>:<PORT>/",
+          "expected_result_ar": "A valid application response is returned.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run ls",
+          "command": "ls -l <PATH>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Search Recursively in a Directory",
+          "command": "grep -Rni '<PATH>' /etc/nginx /etc/httpd 2>/dev/null",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Correct the resource, upstream service, access rule, or certificate, then repeat the request."
+      ],
+      "verification": [
+        {
+          "title_ar": "Test a Website Response",
+          "command": "curl -I http://<HOST>:<PORT><PATH>",
+          "expected_result_ar": "A valid application response is returned.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "http-5xx",
+      "title_ar": "HTTP Server Error",
+      "patterns": [
+        "http/\\d(?:\\.\\d)?\\s+50[0-9]",
+        "\\b(?:500 internal server error|502 bad gateway|503 service unavailable|504 gateway timeout)\\b"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "web",
+        "service"
+      ],
+      "severity": "high",
+      "base_confidence": 0.96,
+      "explanation_ar": "The web server or an upstream application failed while processing the request.",
+      "likely_causes_ar": [
+        "The resource, access rule, upstream application, or TLS configuration is incorrect.",
+        "Invalid configuration or a failed dependency.",
+        "A required path, permission, or port is unavailable."
+      ],
+      "checks": [
+        {
+          "title_ar": "Show Service Status",
+          "command": "systemctl status <SERVICE> --no-pager -l",
+          "expected_result_ar": "The unit status and recent messages are displayed.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run ss",
+          "command": "sudo ss -tlnp",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "View a Service Log",
+          "command": "journalctl -u <SERVICE> -b --no-pager -n 120",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Correct the resource, upstream service, access rule, or certificate, then repeat the request.",
+        "Read the first meaningful service log error and correct the root cause before restarting."
+      ],
+      "verification": [
+        {
+          "title_ar": "Test a Website Response",
+          "command": "curl -I http://<HOST>:<PORT><PATH>",
+          "expected_result_ar": "A valid application response is returned.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "tls-certificate",
+      "title_ar": "TLS Certificate Validation Failed",
+      "patterns": [
+        "certificate verify failed",
+        "self[- ]signed certificate",
+        "certificate has expired",
+        "hostname mismatch",
+        "unable to get local issuer certificate"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "tls",
+        "web"
+      ],
+      "severity": "high",
+      "base_confidence": 0.98,
+      "explanation_ar": "The certificate is untrusted, expired, incomplete, or does not match the requested host name.",
+      "likely_causes_ar": [
+        "The resource, access rule, upstream application, or TLS configuration is incorrect."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run openssl",
+          "command": "openssl s_client -connect <HOST>:<PORT> -servername <HOST> </dev/null",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run echo",
+          "command": "echo | openssl s_client -connect <HOST>:<PORT> -servername <HOST> 2>/dev/null | openssl x509 -noout -subject -issuer -dates -ext subjectAltName",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Correct the resource, upstream service, access rule, or certificate, then repeat the request."
+      ],
+      "verification": [
+        {
+          "title_ar": "Test a Website Response",
+          "command": "curl -Iv https://<HOST>:<PORT>/",
+          "expected_result_ar": "A valid application response is returned.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "ssh-publickey",
+      "title_ar": "SSH Authentication Failed",
+      "patterns": [
+        "permission denied \\(publickey",
+        "permission denied, please try again",
+        "no supported authentication methods available"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "ssh",
+        "authentication"
+      ],
+      "severity": "high",
+      "base_confidence": 0.99,
+      "explanation_ar": "The connection reached sshd, but public-key or password authentication did not succeed.",
+      "likely_causes_ar": [
+        "The network path, sshd state, host identity, or authentication is failing.",
+        "The account, credentials, lockout, or access policy is incorrect."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run SSH in Verbose Mode",
+          "command": "ssh -vvv -p <PORT> <USER>@<HOST>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run ls",
+          "command": "ls -ldZ ~/.ssh ~/.ssh/authorized_keys",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run journalctl",
+          "command": "sudo journalctl -u sshd -b --no-pager -n 120",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Verify the server identity, account, sshd state, and authentication logs."
+      ],
+      "verification": [
+        {
+          "title_ar": "Connect to SSH on a Custom Port",
+          "command": "ssh -p <PORT> <USER>@<HOST>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "ssh-host-key",
+      "title_ar": "SSH Host Key Changed",
+      "patterns": [
+        "remote host identification has changed",
+        "host key verification failed"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "ssh",
+        "security"
+      ],
+      "severity": "critical",
+      "base_confidence": 0.99,
+      "explanation_ar": "The server key does not match the key stored by the client. Verify the fingerprint before accepting it.",
+      "likely_causes_ar": [
+        "The network path, sshd state, host identity, or authentication is failing."
+      ],
+      "checks": [
+        {
+          "title_ar": "Generate an SSH Key",
+          "command": "ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Generate an SSH Key",
+          "command": "ssh-keygen -F <HOST>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Verify the server identity, account, sshd state, and authentication logs."
+      ],
+      "verification": [
+        {
+          "title_ar": "Connect to an SSH Server",
+          "command": "ssh <USER>@<HOST>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "invalid-user",
+      "title_ar": "Unknown or Disallowed User",
+      "patterns": [
+        "invalid user",
+        "user .* not allowed because not listed",
+        "unknown user"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "ssh",
+        "users"
+      ],
+      "severity": "high",
+      "base_confidence": 0.98,
+      "explanation_ar": "The server does not recognize the account or an sshd access rule denies it.",
+      "likely_causes_ar": [
+        "The network path, sshd state, host identity, or authentication is failing."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run getent",
+          "command": "getent passwd <USER>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run sshd",
+          "command": "sudo sshd -T | grep -Ei 'allowusers|allowgroups|denyusers|denygroups'",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Verify the server identity, account, sshd state, and authentication logs."
+      ],
+      "verification": [
+        {
+          "title_ar": "Connect to an SSH Server",
+          "command": "ssh <USER>@<HOST>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "firewalld-not-running",
+      "title_ar": "firewalld Is Not Running",
+      "patterns": [
+        "firewalld is not running",
+        "firewall-cmd: error:.*not running"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "firewall",
+        "service"
+      ],
+      "severity": "high",
+      "base_confidence": 0.99,
+      "explanation_ar": "firewall-cmd cannot inspect or change rules because firewalld is stopped.",
+      "likely_causes_ar": [
+        "Invalid configuration or a failed dependency.",
+        "A required path, permission, or port is unavailable."
+      ],
+      "checks": [
+        {
+          "title_ar": "Show Service Status",
+          "command": "systemctl status firewalld --no-pager -l",
+          "expected_result_ar": "The unit status and recent messages are displayed.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "View a Service Log",
+          "command": "journalctl -u firewalld -b --no-pager -n 100",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Read the first meaningful service log error and correct the root cause before restarting."
+      ],
+      "verification": [
+        {
+          "title_ar": "Show Firewall Status",
+          "command": "firewall-cmd --state",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "firewalld-zone",
+      "title_ar": "Invalid firewalld Zone",
+      "patterns": [
+        "invalid_zone",
+        "zone .* is not available",
+        "unknown zone"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "firewall"
+      ],
+      "severity": "medium",
+      "base_confidence": 0.98,
+      "explanation_ar": "The requested zone does not exist or is not associated with the relevant interface or source.",
+      "likely_causes_ar": [
+        "The visible message is incomplete and the original error is in a related log."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run firewall-cmd",
+          "command": "firewall-cmd --get-zones",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Show Active Firewall Zones",
+          "command": "firewall-cmd --get-active-zones",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Collect complete output and run the recommended read-only checks before changing the system."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run firewall-cmd",
+          "command": "firewall-cmd --zone=<ZONE> --list-all",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "selinux-avc",
+      "title_ar": "SELinux Denied the Operation",
+      "patterns": [
+        "avc:\\s*denied",
+        "type=avc",
+        "selinux is preventing",
+        "security context .* denied"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "selinux",
+        "permissions"
+      ],
+      "severity": "high",
+      "base_confidence": 0.99,
+      "explanation_ar": "SELinux policy blocked access because the domain, context, Boolean, or port type did not permit it.",
+      "likely_causes_ar": [
+        "The context, Boolean, port type, or policy does not permit the action.",
+        "Ownership, mode bits, ACLs, or parent-directory access is incorrect."
+      ],
+      "checks": [
+        {
+          "title_ar": "Review Recent SELinux Denials",
+          "command": "sudo ausearch -m AVC,USER_AVC -ts recent",
+          "expected_result_ar": "Relevant AVC events are displayed, or the result is empty.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Review Recent SELinux Denials",
+          "command": "sudo ausearch -m AVC -ts recent | audit2why",
+          "expected_result_ar": "Relevant AVC events are displayed, or the result is empty.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run ls",
+          "command": "ls -ldZ <PATH>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "List SELinux Booleans",
+          "command": "getsebool -a | grep -i <SERVICE>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Use restorecon, a documented Boolean, or an approved port type; do not disable SELinux.",
+        "Grant only the minimum required access and verify ownership, ACLs, and SELinux."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run <RETRY_ORIGINAL_ACTION>",
+          "command": "<RETRY_ORIGINAL_ACTION>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Review Recent SELinux Denials",
+          "command": "sudo ausearch -m AVC -ts recent",
+          "expected_result_ar": "Relevant AVC events are displayed, or the result is empty.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "dnf-no-match",
+      "title_ar": "Package Not Found in Enabled Repositories",
+      "patterns": [
+        "no match for argument",
+        "unable to find a match",
+        "no package .* available"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "packages",
+        "repository"
+      ],
+      "severity": "medium",
+      "base_confidence": 0.99,
+      "explanation_ar": "DNF could not find the requested package name in the enabled repositories.",
+      "likely_causes_ar": [
+        "The package name, repository, dependency, signature, or transaction state is invalid.",
+        "Repository metadata, network access, or configuration is unavailable."
+      ],
+      "checks": [
+        {
+          "title_ar": "Search for a Package",
+          "command": "dnf search <PACKAGE>",
+          "expected_result_ar": "Matching packages or alternatives are displayed.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "List Enabled Repositories",
+          "command": "dnf repolist --all",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Find the Package That Provides a File",
+          "command": "dnf provides '*/<COMMAND>'",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Use compatible packages and official repositories, then repeat the transaction check."
+      ],
+      "verification": [
+        {
+          "title_ar": "Show Package Information",
+          "command": "dnf info <PACKAGE>",
+          "expected_result_ar": "Package metadata is displayed.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "repo-metadata",
+      "title_ar": "Repository Metadata Download Failed",
+      "patterns": [
+        "failed to download metadata",
+        "cannot download repomd\\.xml",
+        "failed to synchronize cache",
+        "cannot prepare internal mirrorlist"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "packages",
+        "repository",
+        "network"
+      ],
+      "severity": "high",
+      "base_confidence": 0.97,
+      "explanation_ar": "DNF could not retrieve metadata for one or more repositories.",
+      "likely_causes_ar": [
+        "The package name, repository, dependency, signature, or transaction state is invalid.",
+        "Repository metadata, network access, or configuration is unavailable.",
+        "The address, route, DNS, firewall, or remote service is unavailable."
+      ],
+      "checks": [
+        {
+          "title_ar": "List Enabled Repositories",
+          "command": "dnf repolist -v",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run dnf",
+          "command": "sudo dnf -v makecache",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run getent",
+          "command": "getent hosts <REPO_HOST>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Use compatible packages and official repositories, then repeat the transaction check.",
+        "Verify the address, route, listener, and firewall path in order."
+      ],
+      "verification": [
+        {
+          "title_ar": "Clean the DNF Cache",
+          "command": "sudo dnf clean all && sudo dnf makecache",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "gpg-check",
+      "title_ar": "Package Signature Verification Failed",
+      "patterns": [
+        "gpg check failed",
+        "public key .* is not installed",
+        "signature verification failed",
+        "bad gpg signature"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "packages",
+        "security"
+      ],
+      "severity": "high",
+      "base_confidence": 0.99,
+      "explanation_ar": "DNF or RPM could not trust the package signature or the required repository key.",
+      "likely_causes_ar": [
+        "The package name, repository, dependency, signature, or transaction state is invalid."
+      ],
+      "checks": [
+        {
+          "title_ar": "Check Whether a Package Is Installed",
+          "command": "rpm -qa 'gpg-pubkey*'",
+          "expected_result_ar": "The installed package name and version are displayed.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Search Recursively in a Directory",
+          "command": "grep -RniE '^(gpgcheck|gpgkey)=' /etc/yum.repos.d",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Use compatible packages and official repositories, then repeat the transaction check."
+      ],
+      "verification": [
+        {
+          "title_ar": "Install a Package",
+          "command": "sudo dnf install <PACKAGE>",
+          "expected_result_ar": "The transaction completes without unresolved errors.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "package-conflict",
+      "title_ar": "Package or File Conflict",
+      "patterns": [
+        "conflicts with file from package",
+        "package .* conflicts with",
+        "file .* from install of .* conflicts"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "packages"
+      ],
+      "severity": "high",
+      "base_confidence": 0.98,
+      "explanation_ar": "The requested package conflicts with an installed package or an existing owned file.",
+      "likely_causes_ar": [
+        "The package name, repository, dependency, signature, or transaction state is invalid."
+      ],
+      "checks": [
+        {
+          "title_ar": "Check Whether a Package Is Installed",
+          "command": "rpm -qf <PATH>",
+          "expected_result_ar": "The installed package name and version are displayed.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Check Whether a Package Is Installed",
+          "command": "rpm -qa | grep -i <PACKAGE>",
+          "expected_result_ar": "The installed package name and version are displayed.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Use compatible packages and official repositories, then repeat the transaction check."
+      ],
+      "verification": [
+        {
+          "title_ar": "Install a Package",
+          "command": "sudo dnf install <PACKAGE> --assumeno",
+          "expected_result_ar": "The transaction completes without unresolved errors.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "dependency-resolution",
+      "title_ar": "Package Dependencies Cannot Be Resolved",
+      "patterns": [
+        "nothing provides .* needed by",
+        "conflicting requests",
+        "cannot install the best candidate",
+        "package .* requires"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "packages",
+        "repository"
+      ],
+      "severity": "high",
+      "base_confidence": 0.97,
+      "explanation_ar": "The configured repositories do not provide a compatible dependency set.",
+      "likely_causes_ar": [
+        "The package name, repository, dependency, signature, or transaction state is invalid.",
+        "Repository metadata, network access, or configuration is unavailable."
+      ],
+      "checks": [
+        {
+          "title_ar": "Install a Package",
+          "command": "sudo dnf install <PACKAGE> --assumeno -v",
+          "expected_result_ar": "The transaction completes without unresolved errors.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "List Enabled Repositories",
+          "command": "dnf repolist --all",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run dnf",
+          "command": "dnf module list",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Use compatible packages and official repositories, then repeat the transaction check."
+      ],
+      "verification": [
+        {
+          "title_ar": "Install a Package",
+          "command": "sudo dnf install <PACKAGE> --assumeno",
+          "expected_result_ar": "The transaction completes without unresolved errors.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "rpm-lock",
+      "title_ar": "DNF or RPM Is Busy",
+      "patterns": [
+        "another app is currently holding the yum lock",
+        "waiting for process with pid",
+        "rpmdb.*locked",
+        "resource temporarily unavailable.*rpm"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "packages"
+      ],
+      "severity": "medium",
+      "base_confidence": 0.96,
+      "explanation_ar": "Another package-manager process currently owns the RPM database or transaction lock.",
+      "likely_causes_ar": [
+        "The package name, repository, dependency, signature, or transaction state is invalid."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run ps",
+          "command": "ps -ef | grep -E '[d]nf|[r]pm'",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "List systemd Timers",
+          "command": "systemctl list-timers | grep -i dnf",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Use compatible packages and official repositories, then repeat the transaction check."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run dnf",
+          "command": "dnf check",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "mount-filesystem",
+      "title_ar": "Filesystem Could Not Be Mounted",
+      "patterns": [
+        "wrong fs type",
+        "bad superblock",
+        "unknown filesystem type",
+        "special device .* does not exist"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "storage",
+        "mount"
+      ],
+      "severity": "high",
+      "base_confidence": 0.98,
+      "explanation_ar": "The device, filesystem type, UUID, superblock, or fstab entry is incorrect or damaged.",
+      "likely_causes_ar": [
+        "Capacity, inodes, filesystem state, LVM space, or the device path is failing."
+      ],
+      "checks": [
+        {
+          "title_ar": "List Disks and Partitions",
+          "command": "lsblk -f",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run blkid",
+          "command": "blkid <DEVICE>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Mount a Filesystem",
+          "command": "sudo mount -av",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Protect data first, identify the real consumer or failing device, and repair or extend the correct layer."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run findmnt",
+          "command": "findmnt <MOUNT_POINT>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "device-busy",
+      "title_ar": "Device or Resource Is Busy",
+      "patterns": [
+        "device or resource busy",
+        "target is busy"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "storage",
+        "mount"
+      ],
+      "severity": "high",
+      "base_confidence": 0.98,
+      "explanation_ar": "A process, current directory, or nested mount still uses the resource.",
+      "likely_causes_ar": [
+        "Capacity, inodes, filesystem state, LVM space, or the device path is failing."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run fuser",
+          "command": "sudo fuser -vm <MOUNT_POINT>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run findmnt",
+          "command": "findmnt -R <MOUNT_POINT>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Protect data first, identify the real consumer or failing device, and repair or extend the correct layer."
+      ],
+      "verification": [
+        {
+          "title_ar": "Unmount a Filesystem",
+          "command": "sudo umount <MOUNT_POINT>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "lvm-no-space",
+      "title_ar": "Insufficient Free Extents in the Volume Group",
+      "patterns": [
+        "insufficient free space",
+        "insufficient free extents",
+        "not enough free space.*volume group"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "storage",
+        "lvm"
+      ],
+      "severity": "high",
+      "base_confidence": 0.99,
+      "explanation_ar": "The volume group does not contain enough free extents for the requested operation.",
+      "likely_causes_ar": [
+        "Capacity, inodes, filesystem state, LVM space, or the device path is failing."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run vgs",
+          "command": "vgs",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run pvs",
+          "command": "pvs",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run lvs",
+          "command": "lvs -a -o +devices",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Protect data first, identify the real consumer or failing device, and repair or extend the correct layer."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run vgs",
+          "command": "vgs",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "oom-killed",
+      "title_ar": "Process Killed by the Out-of-Memory Manager",
+      "patterns": [
+        "out of memory: killed process",
+        "oom-kill",
+        "killed process \\d+",
+        "memory cgroup out of memory"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "memory",
+        "performance",
+        "service"
+      ],
+      "severity": "critical",
+      "base_confidence": 0.98,
+      "explanation_ar": "The system or a memory cgroup exhausted available memory and terminated a process.",
+      "likely_causes_ar": [
+        "Memory capacity, process behavior, or configured limits are insufficient.",
+        "CPU, memory, I/O, or workload pressure exceeds available capacity.",
+        "Invalid configuration or a failed dependency.",
+        "A required path, permission, or port is unavailable."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run journalctl",
+          "command": "sudo journalctl -k -b --no-pager | grep -iE 'out of memory|oom|killed process'",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Show Memory Usage",
+          "command": "free -h",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run ps",
+          "command": "ps aux --sort=-%mem | head -n 15",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Read the first meaningful service log error and correct the root cause before restarting."
+      ],
+      "verification": [
+        {
+          "title_ar": "Show Service Status",
+          "command": "free -h && systemctl status <SERVICE> --no-pager",
+          "expected_result_ar": "The unit status and recent messages are displayed.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "segmentation-fault",
+      "title_ar": "Segmentation Fault",
+      "patterns": [
+        "segmentation fault",
+        "segfault at",
+        "core dumped"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "application",
+        "memory"
+      ],
+      "severity": "critical",
+      "base_confidence": 0.98,
+      "explanation_ar": "The program accessed invalid memory and exited or generated a core dump.",
+      "likely_causes_ar": [
+        "Memory capacity, process behavior, or configured limits are insufficient."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run coredumpctl",
+          "command": "coredumpctl list",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run coredumpctl",
+          "command": "coredumpctl info <COMMAND>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run ldd",
+          "command": "ldd <PATH>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Collect complete output and run the recommended read-only checks before changing the system."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run <RETRY_ORIGINAL_ACTION>",
+          "command": "<RETRY_ORIGINAL_ACTION>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "authentication-failure",
+      "title_ar": "Authentication Failed",
+      "patterns": [
+        "authentication failure",
+        "login incorrect",
+        "pam_unix.*authentication failure",
+        "incorrect password"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "authentication",
+        "users"
+      ],
+      "severity": "high",
+      "base_confidence": 0.98,
+      "explanation_ar": "Credentials or PAM policy did not allow the login.",
+      "likely_causes_ar": [
+        "The account, credentials, lockout, or access policy is incorrect."
+      ],
+      "checks": [
+        {
+          "title_ar": "Set a User Password",
+          "command": "sudo passwd -S <USER>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run faillock",
+          "command": "sudo faillock --user <USER>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run chage",
+          "command": "sudo chage -l <USER>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Collect complete output and run the recommended read-only checks before changing the system."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run su",
+          "command": "su - <USER>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "io-error",
+      "title_ar": "Storage Input/Output Error",
+      "patterns": [
+        "input/output error",
+        "\\bi/o error\\b",
+        "blk_update_request.*error",
+        "buffer i/o error"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "storage",
+        "hardware"
+      ],
+      "severity": "critical",
+      "base_confidence": 0.99,
+      "explanation_ar": "The kernel reported a read or write failure on a storage device or storage path.",
+      "likely_causes_ar": [
+        "Capacity, inodes, filesystem state, LVM space, or the device path is failing.",
+        "The storage device or controller may be failing."
+      ],
+      "checks": [
+        {
+          "title_ar": "Run journalctl",
+          "command": "sudo journalctl -k -b --no-pager | grep -iE 'I/O error|blk_update|buffer I/O|nvme|ata'",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run lsblk",
+          "command": "lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINTS,MODEL,SERIAL",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run smartctl",
+          "command": "sudo smartctl -a <DEVICE>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Protect data first, identify the real consumer or failing device, and repair or extend the correct layer."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run journalctl",
+          "command": "sudo journalctl -k --since '-10 min' | grep -i 'I/O error'",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "too-many-open-files",
+      "title_ar": "Too Many Open Files",
+      "patterns": [
+        "too many open files",
+        "\\bemfile\\b"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "service",
+        "performance"
+      ],
+      "severity": "high",
+      "base_confidence": 0.99,
+      "explanation_ar": "The process or system reached its file-descriptor limit.",
+      "likely_causes_ar": [
+        "Invalid configuration or a failed dependency.",
+        "A required path, permission, or port is unavailable.",
+        "CPU, memory, I/O, or workload pressure exceeds available capacity."
+      ],
+      "checks": [
+        {
+          "title_ar": "Display a File",
+          "command": "cat /proc/<PID>/limits | grep -i 'open files'",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run ls",
+          "command": "ls /proc/<PID>/fd | wc -l",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Run systemctl",
+          "command": "systemctl show <SERVICE> -p LimitNOFILE",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Read the first meaningful service log error and correct the root cause before restarting."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run systemctl",
+          "command": "systemctl show <SERVICE> -p LimitNOFILE",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    },
+    {
+      "id": "generic-error",
+      "title_ar": "The Output Contains a General Failure",
+      "patterns": [
+        "\\berror\\b",
+        "\\bfailed\\b",
+        "\\bfailure\\b",
+        "\\bfatal\\b"
+      ],
+      "negative_patterns": [],
+      "domains": [
+        "global"
+      ],
+      "severity": "medium",
+      "base_confidence": 0.6,
+      "explanation_ar": "The output indicates failure, but more detailed logs are required to identify the exact cause.",
+      "likely_causes_ar": [
+        "The visible message is incomplete and the original error is in a related log."
+      ],
+      "checks": [
+        {
+          "title_ar": "View Logs from the Current Boot",
+          "command": "journalctl -b -p warning --no-pager -n 120",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "Show Service Status",
+          "command": "systemctl status <SERVICE> --no-pager -l",
+          "expected_result_ar": "The unit status and recent messages are displayed.",
+          "purpose": "diagnosis"
+        },
+        {
+          "title_ar": "View a Service Log",
+          "command": "journalctl -u <SERVICE> -b --no-pager -n 120",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ],
+      "fixes_ar": [
+        "Collect complete output and run the recommended read-only checks before changing the system."
+      ],
+      "verification": [
+        {
+          "title_ar": "Run <RETRY_ORIGINAL_ACTION>",
+          "command": "<RETRY_ORIGINAL_ACTION>",
+          "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+          "purpose": "diagnosis"
+        }
+      ]
+    }
+  ],
+  "fallbacks": {
+    "service": [
+      {
+        "title_ar": "Show Service Status",
+        "command": "systemctl status <SERVICE> --no-pager -l",
+        "expected_result_ar": "The unit status and recent messages are displayed.",
+        "purpose": "diagnosis"
+      },
+      {
+        "title_ar": "View a Service Log",
+        "command": "journalctl -u <SERVICE> -b --no-pager -n 120",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      },
+      {
+        "title_ar": "Inspect the Unit Definition",
+        "command": "systemctl cat <SERVICE>",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      }
+    ],
+    "packages": [
+      {
+        "title_ar": "List Enabled Repositories",
+        "command": "dnf repolist --all",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      },
+      {
+        "title_ar": "Run dnf",
+        "command": "dnf check",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      },
+      {
+        "title_ar": "Run dnf",
+        "command": "sudo dnf -v <ORIGINAL_DNF_ACTION>",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      }
+    ],
+    "network": [
+      {
+        "title_ar": "Run ip",
+        "command": "ip -br address",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      },
+      {
+        "title_ar": "Run ip",
+        "command": "ip route",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      },
+      {
+        "title_ar": "Run getent",
+        "command": "getent hosts <HOST>",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      },
+      {
+        "title_ar": "Run nc",
+        "command": "nc -vz -w 5 <HOST> <PORT>",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      }
+    ],
+    "permissions": [
+      {
+        "title_ar": "Show User Identity and Groups",
+        "command": "id",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      },
+      {
+        "title_ar": "Run namei",
+        "command": "namei -l <PATH>",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      },
+      {
+        "title_ar": "Run ls",
+        "command": "ls -ldZ <PATH>",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      }
+    ],
+    "storage": [
+      {
+        "title_ar": "Show Filesystem Disk Usage",
+        "command": "df -hT",
+        "expected_result_ar": "Filesystem usage is displayed.",
+        "purpose": "diagnosis"
+      },
+      {
+        "title_ar": "Check Inode Usage",
+        "command": "df -ih",
+        "expected_result_ar": "Filesystem usage is displayed.",
+        "purpose": "diagnosis"
+      },
+      {
+        "title_ar": "View Kernel Messages",
+        "command": "journalctl -k -b --no-pager | tail -n 100",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      }
+    ],
+    "selinux": [
+      {
+        "title_ar": "Show the SELinux Mode",
+        "command": "getenforce",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      },
+      {
+        "title_ar": "Review Recent SELinux Denials",
+        "command": "sudo ausearch -m AVC,USER_AVC -ts recent",
+        "expected_result_ar": "Relevant AVC events are displayed, or the result is empty.",
+        "purpose": "diagnosis"
+      },
+      {
+        "title_ar": "Run ls",
+        "command": "ls -ldZ <PATH>",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      }
+    ],
+    "global": [
+      {
+        "title_ar": "View Logs from the Current Boot",
+        "command": "journalctl -b -p warning --no-pager -n 120",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      },
+      {
+        "title_ar": "List Failed Services",
+        "command": "systemctl --failed",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      },
+      {
+        "title_ar": "View Kernel Messages",
+        "command": "journalctl -k -b --no-pager | tail -n 80",
+        "expected_result_ar": "Review the output and confirm that it matches the intended result.",
+        "purpose": "diagnosis"
+      }
+    ]
+  }
+}
