@@ -1628,3 +1628,51 @@ html[dir="ltr"] code,html[dir="ltr"] pre,html[dir="ltr"] .command-box,html[dir="
 @media(max-width:760px){html[dir="ltr"] .workflow-sidebar{border-right:0}}
 
 .hero-rhcsa-button{background:linear-gradient(135deg,#ffffff20,#5f5cff22);border-color:#b7c5ff55}
+
+
+/* Entity dialog navigation */
+.dialog-topbar__navigation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.dialog-back {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: .82rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.dialog-back:hover,
+.dialog-back:focus-visible {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+@media (max-width: 620px) {
+  .dialog-topbar {
+    align-items: flex-start;
+  }
+
+  .dialog-topbar__navigation {
+    position: sticky;
+    top: 0;
+  }
+
+  .dialog-back {
+    min-width: 78px;
+    padding-inline: 11px;
+  }
+}

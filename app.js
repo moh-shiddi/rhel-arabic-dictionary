@@ -239,6 +239,8 @@ class KnowledgeEngineApp {
     this.pathProgress = SafeStorage.get("rhel-ke:path-progress", {});
     this.currentEntity = null;
     this.currentVariables = {};
+    this.entityHistory = [];
+    this.entityReturnScrollY = 0;
     this.visibleLimit = 24;
     this.suggestions = [];
     this.activeSuggestion = -1;
@@ -274,7 +276,7 @@ class KnowledgeEngineApp {
       "loadMoreButton", "entitiesMetric", "tasksMetric", "commandsMetric",
       "conceptsMetric", "pathsMetric", "intentsMetric", "workflowMetric", "intentPanel", "intentPanelContent", "taskTileCount", "troubleTileCount",
       "commandTileCount", "conceptTileCount", "pathTileCount", "schemaVersion",
-      "toast", "entityDialog", "closeDialogButton", "dialogFavoriteButton",
+      "toast", "entityDialog", "dialogBackButton", "closeDialogButton", "dialogFavoriteButton",
       "dialogPrimaryCopyButton", "shareEntityButton", "dialogContent",
       "entityCardTemplate"
     ];
@@ -383,7 +385,12 @@ class KnowledgeEngineApp {
     this.e.intentPanel.addEventListener("click", event => this.handleIntentPanelClick(event));
 
     this.e.resultsGrid.addEventListener("click", event => this.handleCardClick(event));
+    this.e.dialogBackButton.addEventListener("click", () => this.goBackFromEntity());
     this.e.closeDialogButton.addEventListener("click", () => this.closeDialog());
+    this.e.entityDialog.addEventListener("cancel", event => {
+      event.preventDefault();
+      this.closeDialog();
+    });
     this.e.dialogFavoriteButton.addEventListener("click", () => {
       if (this.currentEntity) this.toggleFavorite(this.currentEntity.id);
     });
@@ -811,32 +818,124 @@ class KnowledgeEngineApp {
 
   updateFavoriteCount() { this.e.favoritesCount.textContent = this.favorites.size; }
 
-  openEntity(entity, { updateHash = true, initialVariables = {} } = {}) {
+  openEntity(entity, { updateHash = true, initialVariables = {}, rememberCurrent = true } = {}) {
+    const dialogWasOpen = Boolean(this.e.entityDialog.open || this.e.entityDialog.hasAttribute("open"));
+    const movingToAnotherEntity = Boolean(
+      dialogWasOpen &&
+      this.currentEntity &&
+      this.currentEntity.id !== entity.id
+    );
+
+    if (!dialogWasOpen) {
+      this.entityHistory = [];
+      this.entityReturnScrollY = window.scrollY;
+    } else if (movingToAnotherEntity && rememberCurrent) {
+      this.entityHistory.push({
+        id: this.currentEntity.id,
+        variables: { ...this.currentVariables },
+        scrollTop: this.e.entityDialog.scrollTop
+      });
+    }
+
     this.currentEntity = entity;
     this.currentVariables = {
       ...initialVariables,
-      ...Object.fromEntries((entity.variables || []).map(variable => [variable.name, initialVariables[variable.name] || ""]))
+      ...Object.fromEntries((entity.variables || []).map(variable => [
+        variable.name,
+        initialVariables[variable.name] || ""
+      ]))
     };
+
     this.e.dialogContent.innerHTML = this.renderEntity(entity);
     this.configureDialogActions(entity);
     this.updateDialogFavoriteButton();
-    if (typeof this.e.entityDialog.showModal === "function" && !this.e.entityDialog.open) this.e.entityDialog.showModal();
-    else this.e.entityDialog.setAttribute("open", "");
-    if (updateHash) history.replaceState(null, "", `#entity=${encodeURIComponent(entity.id)}`);
+    this.updateDialogBackButton();
+
+    if (typeof this.e.entityDialog.showModal === "function" && !this.e.entityDialog.open) {
+      this.e.entityDialog.showModal();
+    } else {
+      this.e.entityDialog.setAttribute("open", "");
+    }
+
+    requestAnimationFrame(() => {
+      this.e.entityDialog.scrollTop = 0;
+    });
+
+    if (updateHash) {
+      history.replaceState(null, "", `#entity=${encodeURIComponent(entity.id)}`);
+    }
+  }
+
+  updateDialogBackButton() {
+    if (!this.e.dialogBackButton) return;
+
+    const previous = this.entityHistory.at(-1);
+    if (previous) {
+      const previousEntity = this.entityById.get(previous.id);
+      const previousTitle = previousEntity?.title_ar || previous.id;
+      this.e.dialogBackButton.title = `الرجوع إلى ${previousTitle}`;
+      this.e.dialogBackButton.setAttribute(
+        "aria-label",
+        `الرجوع إلى ${previousTitle}`
+      );
+    } else {
+      this.e.dialogBackButton.title = "الرجوع إلى قائمة النتائج";
+      this.e.dialogBackButton.setAttribute("aria-label", "الرجوع إلى قائمة النتائج");
+    }
+  }
+
+  goBackFromEntity() {
+    const previous = this.entityHistory.pop();
+
+    if (previous) {
+      const previousEntity = this.entityById.get(previous.id);
+      if (previousEntity) {
+        this.openEntity(previousEntity, {
+          updateHash: true,
+          initialVariables: previous.variables || {},
+          rememberCurrent: false
+        });
+
+        requestAnimationFrame(() => {
+          this.e.entityDialog.scrollTop = Number(previous.scrollTop) || 0;
+        });
+        return;
+      }
+    }
+
+    this.closeDialog();
   }
 
   closeDialog() {
-    if (this.e.entityDialog.open && typeof this.e.entityDialog.close === "function") this.e.entityDialog.close();
-    else this.e.entityDialog.removeAttribute("open");
+    const returnScrollY = this.entityReturnScrollY;
+
+    if (this.e.entityDialog.open && typeof this.e.entityDialog.close === "function") {
+      this.e.entityDialog.close();
+    } else {
+      this.e.entityDialog.removeAttribute("open");
+    }
+
     this.currentEntity = null;
-    if (location.hash.startsWith("#entity=")) history.replaceState(null, "", location.pathname + location.search);
+    this.currentVariables = {};
+    this.entityHistory = [];
+    this.updateDialogBackButton();
+
+    if (location.hash.startsWith("#entity=")) {
+      history.replaceState(null, "", location.pathname + location.search);
+    }
+
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: returnScrollY, behavior: "auto" });
+    });
   }
 
   openEntityFromHash() {
     const match = location.hash.match(/^#entity=(.+)$/);
     if (!match || !this.entityById.size) return;
     const entity = this.entityById.get(decodeURIComponent(match[1]));
-    if (entity && this.currentEntity?.id !== entity.id) this.openEntity(entity, { updateHash: false });
+    if (entity && this.currentEntity?.id !== entity.id) {
+      this.openEntity(entity, { updateHash: false, rememberCurrent: false });
+    }
   }
 
   configureDialogActions(entity) {
