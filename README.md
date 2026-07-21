@@ -6,8 +6,8 @@ The project combines practical tasks, command references, Linux concepts, guided
 
 ## Try It Online
 
-- **Arabic interface:** https://rhel-arabic-dictionary.pages.dev/
-- **English interface:** https://rhel-arabic-dictionary.pages.dev/en
+- **Arabic interface:** https://rhel-knowledge-engine.pages.dev/
+- **English interface:** https://rhel-knowledge-engine.pages.dev/en
 
 ---
 
