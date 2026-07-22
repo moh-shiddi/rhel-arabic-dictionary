@@ -153,7 +153,7 @@ This is an independent project and is not an official Red Hat product or support
 **محرك معرفة RHEL** منصة ثنائية اللغة تعمل داخل المتصفح، وموجهة للمتعلمين ومتدربي RHEL ومسؤولي الأنظمة والمدربين وفرق الدعم الفني.
 
 يمكنك تجربة المشروع مباشرة على الرابط التالي:
-https://rhel-arabic-dictionary.pages.dev
+https://rhel-knowledge-engine.pages.dev/
 
 المشروع ليس مجرد قاموس أوامر، بل يساعد المستخدم خلال دورة العمل كاملة:
 
