@@ -256,14 +256,28 @@ class GuidedWorkflowRunner {
         <header><span class="eyebrow">Guided Workflow Library</span><h2>اختر مهمة لبدء جلسة منظمة</h2>
           <p>الأداة تعرض الأوامر وتحفظ التقدم، لكنها لا تنفذ شيئاً على جهازك.</p></header>
         <div class="wf-library-controls">
-          <input id="wfSearch" type="search" value="${ArabicText.escape(this.query)}" placeholder="ابحث عن مهمة أو مشكلة...">
+          <input id="wfSearch" class="wf-command-search" type="search" dir="ltr" autocomplete="off" autocapitalize="none" spellcheck="false" value="${ArabicText.escape(this.query)}" placeholder="ابحث عن مهمة أو مشكلة...">
           <div>${[["all","الكل"],["active","قيد التنفيذ"],["completed","المكتملة"],["task","المهام"],["troubleshooting","حل المشكلات"]].map(([v,l]) =>
             `<button data-wf-filter="${v}" class="${this.filter===v?"active":""}">${l}</button>`).join("")}</div>
         </div>
         <div class="wf-cards">${items.length?items.map(t=>this.libraryCard(t)).join(""):`<div class="wf-empty">لا توجد نتائج مطابقة</div>`}</div>
       </section>`;
-    const input=this.e.workflowContent.querySelector("#wfSearch");
-    input?.addEventListener("input",e=>{this.query=e.target.value;this.renderLibrary();this.e.workflowContent.querySelector("#wfSearch")?.focus();});
+    const input = this.e.workflowContent.querySelector("#wfSearch");
+    input?.addEventListener("input", event => {
+      this.query = event.target.value;
+      this.renderLibrary();
+
+      // renderLibrary() replaces the input element. Restore focus and put the
+      // caret at the end so Linux commands are appended normally, never reversed.
+      const nextInput = this.e.workflowContent.querySelector("#wfSearch");
+      if (nextInput) {
+        nextInput.focus({ preventScroll: true });
+        const caretEnd = nextInput.value.length;
+        if (typeof nextInput.setSelectionRange === "function") {
+          nextInput.setSelectionRange(caretEnd, caretEnd);
+        }
+      }
+    });
   }
 
   libraryCard(task) {

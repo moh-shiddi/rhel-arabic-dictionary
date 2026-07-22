@@ -256,14 +256,28 @@ class GuidedWorkflowRunner {
         <header><span class="eyebrow">Guided Workflow Library</span><h2>Choose a task to start a structured session</h2>
           <p>The tool presents commands and saves progress, but never executes anything on your system.</p></header>
         <div class="wf-library-controls">
-          <input id="wfSearch" type="search" value="${ArabicText.escape(this.query)}" placeholder="Search for a task or problem...">
+          <input id="wfSearch" class="wf-command-search" type="search" dir="ltr" autocomplete="off" autocapitalize="none" spellcheck="false" value="${ArabicText.escape(this.query)}" placeholder="Search for a task or problem...">
           <div>${[["all","All"],["active","In progress"],["completed","Completed"],["task","Tasks"],["troubleshooting","Troubleshooting"]].map(([v,l]) =>
             `<button data-wf-filter="${v}" class="${this.filter===v?"active":""}">${l}</button>`).join("")}</div>
         </div>
         <div class="wf-cards">${items.length?items.map(t=>this.libraryCard(t)).join(""):`<div class="wf-empty">No matching results</div>`}</div>
       </section>`;
-    const input=this.e.workflowContent.querySelector("#wfSearch");
-    input?.addEventListener("input",e=>{this.query=e.target.value;this.renderLibrary();this.e.workflowContent.querySelector("#wfSearch")?.focus();});
+    const input = this.e.workflowContent.querySelector("#wfSearch");
+    input?.addEventListener("input", event => {
+      this.query = event.target.value;
+      this.renderLibrary();
+
+      // renderLibrary() replaces the input element. Restore focus and put the
+      // caret at the end so Linux commands are appended normally, never reversed.
+      const nextInput = this.e.workflowContent.querySelector("#wfSearch");
+      if (nextInput) {
+        nextInput.focus({ preventScroll: true });
+        const caretEnd = nextInput.value.length;
+        if (typeof nextInput.setSelectionRange === "function") {
+          nextInput.setSelectionRange(caretEnd, caretEnd);
+        }
+      }
+    });
   }
 
   libraryCard(task) {

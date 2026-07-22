@@ -1676,3 +1676,22 @@ html[dir="ltr"] code,html[dir="ltr"] pre,html[dir="ltr"] .command-box,html[dir="
     padding-inline: 11px;
   }
 }
+
+
+/* Workflow search direction fix
+   Linux commands and technical queries must always flow left-to-right.
+   Arabic UI keeps the field visually aligned to the right; English stays left. */
+.wf-library-controls > input.wf-command-search {
+  direction: ltr;
+  unicode-bidi: plaintext;
+  text-align: left;
+  font-family: Consolas, "Courier New", monospace;
+}
+
+html[dir="rtl"] .wf-library-controls > input.wf-command-search {
+  text-align: right;
+}
+
+html[dir="ltr"] .wf-library-controls > input.wf-command-search {
+  text-align: left;
+}
