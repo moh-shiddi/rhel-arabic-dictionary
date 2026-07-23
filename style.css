@@ -444,7 +444,7 @@ html[data-theme="dark"] .favorite-button.is-favorite { background: #453a12; colo
 
 .hero__doctor-action > button > span:nth-child(2) {
   min-width: 0;
-  text-align: left;
+  text-align: start;
   justify-self: stretch;
 }
 
