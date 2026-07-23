@@ -438,8 +438,14 @@ html[data-theme="dark"] .favorite-button.is-favorite { background: #453a12; colo
   border-radius: 17px;
   background: rgba(255,255,255,.12);
   color: #fff;
-  text-align: left;
+  text-align: right;
   backdrop-filter: blur(8px);
+}
+
+.hero__doctor-action > button > span:nth-child(2) {
+  min-width: 0;
+  text-align: left;
+  justify-self: stretch;
 }
 
 .hero__doctor-action > button:hover {
