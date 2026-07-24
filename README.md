@@ -105,6 +105,12 @@ User progress, preferences, and diagnostic sessions may be stored in `localStora
 - Python maintenance scripts
 - Node.js tests
 
+## Architecture Decision
+
+The project uses a lightweight vanilla web architecture by design to provide fast startup, offline capability, zero backend dependency, simple deployment, and easy organizational adoption.
+
+This approach keeps the platform portable, easy to host, and suitable for training environments, internal networks, and systems where installing additional frameworks or services is unnecessary.
+
 ## Run Locally
 
 Because the project loads JSON files with `fetch()`, run it through a local HTTP server:
@@ -234,6 +240,12 @@ https://rhel-knowledge-engine.pages.dev/
 - JSON
 - سكربتات Python
 - اختبارات Node.js
+
+## قرار البنية التقنية
+
+تم اختيار بنية ويب خفيفة تعتمد على HTML وCSS وJavaScript الخام بشكل مقصود، بهدف تحقيق سرعة التشغيل، والعمل دون اتصال، وعدم الاعتماد على خادم خلفي، وسهولة النشر والتبني داخل الجهات المختلفة.
+
+يساعد هذا الأسلوب على إبقاء المنصة قابلة للنقل والاستضافة بسهولة، ومناسبة لبيئات التدريب والشبكات الداخلية والأنظمة التي لا تحتاج إلى تثبيت أطر عمل أو خدمات إضافية.
 
 ## التشغيل المحلي
 
